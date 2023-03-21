@@ -2,10 +2,10 @@ import time
 
 import numpy as np
 import qutip as qt
-import matlab.engine
+# import matlab.engine
 import itertools
 
-from exrec import channels
+import channels
 
 
 class DecoderException(Exception):

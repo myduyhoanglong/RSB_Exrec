@@ -28,3 +28,5 @@ DEPHASE_PHASE = 9  # ne^{i(\pi/N^2)n}(.)e^{-i(\pi/N^2)n} + e^{i(\pi/N^2)n}(.)e^{
 LOSS_PHASE = 10  # e^{i(\2pi/N^2)n}a(.)a^{\dagger}e^{-i(\2pi/N^2)n}
 DEPHASE_LOSS = 11  # an(.)a^{\dagger} + a(.)na^{\dagger}
 DEPHASE = 12  # n(.)n
+
+init_pairs = [(2, 5), (4, 10), (6, 15), (8, 20)]

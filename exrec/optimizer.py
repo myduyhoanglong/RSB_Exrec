@@ -57,6 +57,7 @@ class Optimizer:
         physical infidelity. Assume that alpha_data=alpha_ancilla and offset_data=offset_ancilla.
         Version 2: optimizing for ratio between encoded and benchmark infidelity may be more suitable."""
 
+        self.logger.set_log_optimize_path(self.logger.get_path_by_init_pair(init_params))
         self.log_optimize_header(init_params)
 
         def f(params):
@@ -98,6 +99,7 @@ class Optimizer:
         physical infidelity. Assume that alpha_anc = ALPHA_MAX.
         Version 2: optimizing for ratio between encoded and benchmark infidelity may be more suitable."""
 
+        self.logger.set_log_optimize_path(self.logger.get_path_by_init_pair(init_params))
         self.log_optimize_header(init_params)
 
         def f(params):
@@ -246,12 +248,28 @@ class Logger:
         self.log_dir = './logs/'
         self.log_path_exrec = self.log_dir + 'data.txt'
         self.log_path_optimize = self.log_dir + 'log.txt'
-    #     self.writer_optimize.close()
+
+    def get_path_by_init_pair(self, init_pair):
+        if init_pair[0] == 2:
+            path = self.log_dir + 'log_1.txt'
+        elif init_pair[0] == 4:
+            path = self.log_dir + 'log_2.txt'
+        elif init_pair[0] == 6:
+            path = self.log_dir + 'log_3.txt'
+        elif init_pair[0] == 8:
+            path = self.log_dir + 'log_4.txt'
+        else:
+            path = self.log_dir + 'log.txt'
+        return path
+
+    def set_log_optimize_path(self, path):
+        self.log_path_optimize = path
 
     def log(self, log_content, log_type=EXREC_LOG):
         if log_type == EXREC_LOG:
-            with open(self.log_path_exrec, 'a') as writer:
-                writer.write(log_content)
+            path = self.log_path_exrec
         elif log_type == OPTIMIZE_LOG:
-            with open(self.log_path_optimize, 'a') as writer:
-                writer.write(log_content)
+            path = self.log_path_optimize
+
+        with open(path, 'a') as writer:
+            writer.write(log_content)

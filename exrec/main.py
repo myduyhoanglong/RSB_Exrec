@@ -1,4 +1,5 @@
 import numpy as np
+import multiprocessing
 
 from optimizer import *
 from constants import *
@@ -59,36 +60,34 @@ def find_threshold(N, gamma_phi, gamma_start=1e-4, scheme=KNILL):
 
 
 def find_optimal(N, gamma, gamma_phi, scheme):
-    init_pairs = [(2, 5), (4, 10), (6, 15), (8, 20)]
-    best = None
-    for init_pair in init_pairs:
-        print(N, gamma, gamma_phi, init_pair)
-        if scheme == KNILL:
-            curr = collect_knill(N, gamma, gamma_phi, init_pair)
-        else:
-            curr = collect_hybrid(N, gamma, gamma_phi, init_pair)
-        if best is None or curr < best:
-            best = curr
+    manager = multiprocessing.Manager()
+    results = manager.list()
+    jobs = []
+    if scheme == KNILL:
+        for init_pair in init_pairs:
+            p = multiprocessing.Process(target=collect_knill, args=(N, gamma, gamma_phi, init_pair, results))
+            p.daemon = True
+            jobs.append(p)
+            p.start()
+    elif scheme == HYBRID:
+        for init_pair in init_pairs:
+            p = multiprocessing.Process(target=collect_hybrid, args=(N, gamma, gamma_phi, init_pair, results))
+            p.daemon = True
+            jobs.append(p)
+            p.start()
+
+    for proc in jobs:
+        proc.join()
+
+    if results is not None:
+        best = min(results)
+    else:
+        best = None
+
     return best
 
 
-def get_gamma(N, gamma_phi):
-    if N == 1:
-        gamma_list = [8e-5, 9e-5, 1e-4, 2e-4, 4e-4]
-    if N == 2:
-        gamma_list = [8e-5, 9e-5, 1e-4, 2e-4, 4e-4]
-    if N == 3:
-        gamma_list = [8e-5, 9e-5, 1e-4]
-    if N == 4:
-        # gamma_list = [8e-5, 9e-5, 1e-4, 2e-4, 4e-4]
-        gamma_list = [5e-4, 6e-4, 7e-4]
-    if N == 5:
-        # gamma_list = [8e-5, 9e-5, 1e-4, 2e-4, 4e-4]
-        gamma_list = [5e-4, 6e-4, 7e-4]
-    return gamma_list
-
-
-def collect_knill(N, gamma, gamma_phi, init_pair):
+def collect_knill(N, gamma, gamma_phi, init_pair, results):
     scheme = KNILL
     decoding_scheme = MAXIMUM_LIKELIHOOD
     ideal_decoder = FAST
@@ -127,10 +126,12 @@ def collect_knill(N, gamma, gamma_phi, init_pair):
     except:
         ratio = op.write_last_log_line_to_data(init_params)
         op.log_fail()
+
+    results.append(ratio)
     return ratio
 
 
-def collect_hybrid(N, gamma, gamma_phi, init_pair):
+def collect_hybrid(N, gamma, gamma_phi, init_pair, results):
     scheme = HYBRID
     decoding_scheme = MAXIMUM_LIKELIHOOD
     ideal_decoder = FAST
@@ -170,6 +171,8 @@ def collect_hybrid(N, gamma, gamma_phi, init_pair):
     except:
         ratio = op.write_last_log_line_to_data(init_params)
         op.log_fail()
+
+    results.append(ratio)
     return ratio
 
 

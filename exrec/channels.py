@@ -1,6 +1,6 @@
 import numpy as np
 import qutip as qt
-from exrec.helpers import n_pow_op
+from helpers import n_pow_op
 
 
 # Ported from git@github.com:arnelg/arXiv-1901.08071.git, with modifications

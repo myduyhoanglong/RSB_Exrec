@@ -3356,3 +3356,11 @@ params:[3.2215828098828414, -0.07208215626763245, 0.0015061128427917149, 13.2879
 params:[3.134307886539334, -0.05788684491448506, 0.0016304808464679265, 13.722468685295693], encoded_infidelity:0.014276999000601198, benchmark_infidelity:0.014399179300564668, diff:-0.00012218029996347024, ratio:0.99151477334832, time:200.6967635154724
 params:[3.229130461852269, -0.08331354325632459, 0.0015544339605204432, 13.310478657999587], encoded_infidelity:0.014430760653367902, benchmark_infidelity:0.01397372538566477, diff:0.00045703526770313196, ratio:1.0327067589414625, time:189.98394751548767
 params:[3.0233273193675925, -0.037334858975877766, 0.0017738605716310096, 14.259982220696875], encoded_infidelity:0.0147354306719375, benchmark_infidelity:0.014953629082722686, diff:-0.00021819841078518643, ratio:0.9854083306749067, time:188.5617060661316
+====================================
+scheme:HYBRID, decoding_scheme:MAXIMUM_LIKELIHOOD, ideal_decoder:FAST, code_params:[3, 4.85, 1, 9], meas_params:[0.3469, 0.3469], noise_params:[0.0032, 0, 1], init_params:[8, -0.34906585039886584, 0, 20]
+====================================
+scheme:HYBRID, decoding_scheme:MAXIMUM_LIKELIHOOD, ideal_decoder:FAST, code_params:[3, 4.85, 1, 9], meas_params:[0.3469, 0.3469], noise_params:[0.0032, 0, 1], init_params:[2, -0.34906585039886584, 0, 5]
+====================================
+scheme:HYBRID, decoding_scheme:MAXIMUM_LIKELIHOOD, ideal_decoder:FAST, code_params:[3, 4.85, 1, 9], meas_params:[0.3469, 0.3469], noise_params:[0.0032, 0, 1], init_params:[4, -0.34906585039886584, 0, 10]
+====================================
+scheme:HYBRID, decoding_scheme:MAXIMUM_LIKELIHOOD, ideal_decoder:FAST, code_params:[3, 4.85, 1, 9], meas_params:[0.3469, 0.3469], noise_params:[0.0032, 0, 1], init_params:[6, -0.34906585039886584, 0, 15]
