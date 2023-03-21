@@ -224,7 +224,7 @@ class Optimizer:
         with open(self.logger.log_path_optimize, 'r') as reader:
             line = reader.readlines()[-1]
 
-        from exrec.helpers import reformat_line_in_log_file
+        from helpers import reformat_line_in_log_file
         import json
         dict_str = reformat_line_in_log_file(line)
         data = json.loads(dict_str)
