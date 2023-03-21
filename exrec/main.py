@@ -9,14 +9,11 @@ from noises import BenchMark
 def main():
     scheme = HYBRID
     gamma_phi_list = [0]
-    N_list = [3, 4]
+    N_list = [4]
     thresholds = []
     for gamma_phi in gamma_phi_list:
         for N in N_list:
-            if N == 3:
-                thres = find_threshold(N, gamma_phi, gamma_start=3.2e-3, scheme=scheme)
-            else:
-                thres = find_threshold(N, gamma_phi, scheme=scheme)
+            thres = find_threshold(N, gamma_phi, scheme=scheme)
             thresholds.append(thres)
     print(thresholds)
 
