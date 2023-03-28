@@ -246,7 +246,12 @@ class Logger:
         self.log_dir = './logs/'
         self.log_path_exrec = self.log_dir + 'data.txt'
         self.log_path_optimize = self.log_dir + 'log.txt'
-    #     self.writer_optimize.close()
+
+    def update_path_exrec(self, path):
+        self.log_path_exrec = self.log_dir + path
+
+    def update_path_optimize(self, path):
+        self.log_path_optimize = self.log_dir + path
 
     def log(self, log_content, log_type=EXREC_LOG):
         if log_type == EXREC_LOG:

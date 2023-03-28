@@ -17,11 +17,18 @@ def average_infidelity(gate):
 
 def get_nkraus(gamma):
     if gamma <= 1e-3:
-        return 12
-    elif gamma < 1e-2:
-        return 21
+        nkraus = 9
+    elif gamma <= 1e-2:
+        nkraus = 12
+    elif gamma <= 2e-2:
+        nkraus = 15
+    elif gamma <= 4e-2:
+        nkraus = 21
+    elif gamma <= 6e-2:
+        nkraus = 27
     else:
-        return 30
+        nkraus = 50
+    return nkraus
 
 
 def matrixf(rho, f, safe=False):

@@ -1,3 +1,5 @@
+import time
+
 import numpy as np
 
 from optimizer import *
@@ -7,13 +9,15 @@ from noises import BenchMark
 
 
 def main():
+    scan_hybrid()
+    exit()
     scheme = HYBRID
     gamma_phi_list = [0]
-    N_list = [4]
+    N_list = [2]
     thresholds = []
     for gamma_phi in gamma_phi_list:
         for N in N_list:
-            thres = find_threshold(N, gamma_phi, scheme=scheme)
+            thres = find_threshold(N, gamma_phi, gamma_start=1e-4, scheme=scheme)
             thresholds.append(thres)
     print(thresholds)
 
@@ -168,6 +172,96 @@ def collect_hybrid(N, gamma, gamma_phi, init_pair):
         ratio = op.write_last_log_line_to_data(init_params)
         op.log_fail()
     return ratio
+
+
+def content_log_optimize_header(exrec):
+    content = "====================================\n"
+    if exrec.scheme == KNILL:
+        content += "scheme:KNILL, "
+    elif exrec.scheme == HYBRID:
+        content += "scheme:HYBRID, "
+    if exrec.decoding_scheme == MAXIMUM_LIKELIHOOD:
+        content += "decoding_scheme:MAXIMUM_LIKELIHOOD, "
+    elif exrec.decoding_scheme == DIRECT:
+        content += "decoding_scheme:DIRECT, "
+    if exrec.ideal_decoder == SDP:
+        content += "ideal_decoder:SDP, "
+    elif exrec.ideal_decoder == FAST:
+        content += "ideal_decoder:FAST, "
+    content += "code_params:" + str(exrec.code_params) + ", "
+    content += "meas_params:" + str(exrec.meas_params) + ", "
+    content += "noise_params:" + str(exrec.noise_params) + "\n"
+
+    return content
+
+
+def content_log_optimize(params, infid, infid_benchmark, elapse):
+    content = ""
+    content += "params:" + str(params) + ", "
+    content += "encoded_infidelity:" + str(infid) + ", "
+    content += "benchmark_infidelity:" + str(infid_benchmark) + ", "
+    content += "diff:" + str(infid - infid_benchmark) + ", "
+    content += "ratio:" + str(infid / infid_benchmark) + ", "
+    content += "time:" + str(elapse) + "\n"
+
+    return content
+
+
+def scan_hybrid():
+    scheme = HYBRID
+    decoding_scheme = MAXIMUM_LIKELIHOOD
+    ideal_decoder = FAST
+
+    # code params
+    N = 3
+    alpha_data = 4.85
+    M = 1
+    alpha_anc = ALPHA_MAX
+
+    # measurement params
+    offset_data = -0.1
+    offset_anc = 0.001
+
+    # noise params
+    gamma = 0.0016
+    gamma_phi = 0
+    eta = 1
+
+    code_params = [N, alpha_data, M, alpha_anc]
+    meas_params = [offset_data, offset_anc]
+    noise_params = [gamma, gamma_phi, eta]
+
+    benchmark = BenchMark(noise_params)
+
+    print(">>INITIALIZE EXREC...<<")
+    st = time.time()
+    exrec = ExtendedGadget(scheme=scheme, code_params=code_params, meas_params=meas_params,
+                           noise_params=noise_params, recovery=decoding_scheme, decoder=ideal_decoder)
+    print(">>DONE INITIALIZE EXREC...<<", time.time() - st)
+
+    logger = Logger()
+    logger.update_path_exrec('scan.txt')
+    logger.update_path_optimize('log_scan.txt')
+
+    logger.log(content_log_optimize_header(exrec), log_type=OPTIMIZE_LOG)
+
+    alphas = np.linspace(start=3, stop=6, num=30)
+    etas = np.linspace(start=1, stop=26, num=50)
+    for alpha in alphas:
+        for eta in etas:
+            st = time.time()
+            init_params = [alpha, eta]
+
+            exrec.update_alpha([alpha, ALPHA_MAX])
+            exrec.update_wait_noise(eta)
+            benchmark.update_noise(exrec.noise_params)
+
+            infid = exrec.get_infidelity()
+            infid_benchmark = benchmark.get_infidelity()
+            elapse = time.time() - st
+            print(init_params, infid, infid_benchmark, infid / infid_benchmark, elapse)
+
+            logger.log(content_log_optimize(list(init_params), infid, infid_benchmark, elapse), log_type=OPTIMIZE_LOG)
 
 
 if __name__ == "__main__":
