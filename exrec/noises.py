@@ -138,8 +138,12 @@ class BenchMark:
     def __init__(self, noise_params):
         self.gamma, self.gamma_phi, self.eta = noise_params
         self.loss = channels.LossChannel(self.eta * self.gamma, 2, get_nkraus(self.gamma))
-        self.dephasing = channels.DephasingChannel(self.eta * self.gamma_phi, 2)
-        self.noise = channels.Channel(channel_matrix=self.dephasing.channel_matrix * self.loss.channel_matrix)
+        if self.gamma_phi > 0:
+            self.dephasing = channels.DephasingChannel(self.eta * self.gamma_phi, 2)
+            self.noise = channels.Channel(channel_matrix=self.dephasing.channel_matrix * self.loss.channel_matrix)
+        else:
+            self.noise = channels.Channel(channel_matrix=self.loss.channel_matrix)
+        # self.noise = channels.Channel(channel_matrix=self.dephasing.channel_matrix * self.loss.channel_matrix)
         self.code = TrivialCode()
         self.infidelity = 1
 

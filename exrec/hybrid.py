@@ -113,6 +113,7 @@ class HybridEC:
                     (l, a) = np.unravel_index(np.argmax(emat[idx]), emat[idx].shape)
                     lamat[x1, x2] = (l, a)
 
+        # dmat(k,k2,k3,z,x,i,j,m,n)
         dmat = np.zeros((self.mod, self.noise.nkraus, 2, 2, 2, 2, 2, 2), dtype=complex)
         for k2 in range(self.noise.nkraus):
             for x1 in range(self.nmeas_anc):

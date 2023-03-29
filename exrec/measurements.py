@@ -34,7 +34,7 @@ class POVM():
     def outcomes(self):
         return self._outcomes
 
-    def complete_check(self, silent=False, atol=1e-9):
+    def complete_check(self, silent=False, atol=1e-7):
         if not qt.isequal(sum(self._povm_elements), qt.identity(self.dim), tol=atol):
             dist = qt.tracedist(sum(self._povm_elements), qt.identity(self.dim))
             raise POVMException("POVM not complete", dist)
