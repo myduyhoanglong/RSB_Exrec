@@ -61,21 +61,3 @@ def povm_mat(theta1, theta2, dim):
 
     povm = 1 / (2 * np.pi) * np.fromfunction(lambda n, m: matrixelement(n, m, theta1, theta2), (dim, dim))
     return qt.Qobj(povm)
-
-
-def reformat_line_in_log_file(line):
-    line = line.strip()
-    line = re.sub(r':', '\":\"', line)
-    subs = re.split(r', ', line)
-    new_line = '\"' + subs[0]
-    for sub in subs[1:]:
-        if (sub[0].isnumeric() or sub[0] == '-') and sub[-1].isnumeric():
-            new_line += ',' + sub
-        elif sub[-1].isnumeric() and '[' in sub:
-            new_line += ',\"' + sub
-        elif (sub[0].isnumeric() or sub[0] == '-') and ']' in sub:
-            new_line += ',' + sub + '\"'
-        else:
-            new_line += ',\"' + sub + '\"'
-    new_line = '{' + new_line + '}'
-    return new_line

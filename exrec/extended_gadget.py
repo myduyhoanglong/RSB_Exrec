@@ -2,15 +2,12 @@ import numpy as np
 
 from codes import CatCode
 from measurements import LogicalMeasurement, WedgeMeasurement
-from decoder import SDPDecoder, FastDecoder
+from decoder import SDPDecoder, TransposeChannelDecoder
 from knill import KnillEC
 from hybrid import HybridEC
 from noises import BaseNoise
-
-from constants import *
 from helpers import average_infidelity
-
-import time
+from constants import *
 
 
 class ExtendedGadgetException(Exception):
@@ -18,123 +15,129 @@ class ExtendedGadgetException(Exception):
 
 
 class ExtendedGadget:
+    """
+    Extended gadget contains leading EC, trailing EC, and waiting step. For implementation, waiting step is absorbed
+    into trailing EC. Loss in one last location of leading EC (CZ location) is combined with waiting loss.
+    Assumptions: Cat code is used for encoding, canonical phase measurement is used for measurement.
+    Functions: Get infidelity of extended gadget, of leading EC, of trailing EC. Update code's amplitude, measurement
+    offsets, and waiting noise streng.
+    """
 
-    def __init__(self, scheme, code_params, meas_params, noise_params, recovery=MAXIMUM_LIKELIHOOD, decoder=SDP):
+    def __init__(self, scheme, code_params, meas_params, noise_params, recovery=DIRECT, decoder=TRANSPOSE):
         """
-        :param scheme: Knill, Knill without prep noise, Hybrid
-        :param code_params: [N, alpha_data, M, alpha_anc]
-        :param meas_params: [offset_data, offset_anc]
-        :param noise_params: [gamma, gamma_phi, eta(waiting time)]
+        Initialize an ExtendedGadget instance.
+        Args:
+            scheme: int
+                KNILL or HYBRID
+            code_params: list
+                A list contains (data mode's rotation degree, data mode's amplitude, ancilla mode's rotation degree,
+                ancilla mode's amplitude), in the form [N, alpha_data, M, alpha_anc].
+            meas_params: list
+                A list contains offsets of measurement of data mode and ancilla mode,
+                in the form [offset_data, offset_anc].
+            noise_params: list
+                A list contains strengths of gate loss, gate dephasing, and multiplication factor of waiting noise
+                compared to gate noise, in the form [gamma, gamma_phi, eta].
+            recovery: int
+                DIRECT or MAXIMUM_LIKELIHOOD.
+                DIRECT: Recovery operators are deduced as in the ideal scenario.
+                MAXIMUM_LIKELIHOOD: Recovery operators are deduced based on the noise as well.
+            decoder: int
+                SDP or TRANSPOSE. Ideal decoder attach to the end of the extended gadget
+                SDP: semi-definite programming decoder.
+                TRANSPOSE: transpose channel decoder.
         """
-        N, alpha_data, M, alpha_anc = code_params
-        offset_data, offset_anc = meas_params
-        gamma, gamma_phi, eta = noise_params
+
         self.scheme = scheme
-        self.decoding_scheme = recovery
-        self.ideal_decoder = decoder
         self.code_params = code_params
         self.meas_params = meas_params
         self.noise_params = noise_params
-        if gamma_phi > 0 and gamma > 0:
-            self.max_eta = min(0.1 / gamma, 1 / gamma_phi)
-        elif gamma > 0:
-            self.max_eta = 0.1 / gamma
-        else:
-            self.max_eta = 1000
+        self.recovery = recovery
+        self.decoder = decoder
 
-        # print("INITIALIZE CODES...")
-        # st = time.time()
-        data = CatCode(N=N, r=0, alpha=alpha_data, fockdim=DIM)
-        anc = CatCode(N=M, r=0, alpha=alpha_anc, fockdim=DIM)
-        # print("DONE INITIALIZE CODES...", time.time() - st)
+        self.N, self.alpha_data, self.M, self.alpha_anc = code_params
+        self.offset_data, self.offset_anc = meas_params
+        self.gamma, self.gamma_phi, self.eta = noise_params
 
-        # print("INITIALIZE BASE NOISE...")
-        # st = time.time()
-        gamma_wait = eta * gamma
-        gamma_phi_wait = eta * gamma_phi
-        self.base_noise = BaseNoise(scheme, gamma, gamma_phi, gamma_wait, gamma_phi_wait, mod=2 * N * M)
-        # print("DONE INITIALIZE BASE NOISE...", time.time() - st)
+        self.gamma_wait = self.eta * self.gamma
+        self.gamma_phi_wait = self.eta * self.gamma_phi
 
-        # print("INITIALIZE MEASUREMENT...")
-        # st = time.time()
-        meas_data, meas_anc = self.make_measurement(scheme, data.N, anc.N, offset_data, offset_anc)
-        # print("DONE INITIALIZE MEASUREMENT...", time.time() - st)
+        self.base_noise = BaseNoise(scheme, self.gamma, self.gamma_wait, self.gamma_phi_wait, mod=2 * self.N * self.M)
 
-        # print("INITIALIZE LEADING EC...")
-        # st = time.time()
-        self.leading_ec = self.make_ec(data=data, anc=anc, meas_data=meas_data, meas_anc=meas_anc, gamma=gamma,
-                                       gamma_phi=gamma_phi, loss_in=None, dephasing_in=None, decoding=recovery)
-        # print("DONE INITIALIZE LEADING EC...", time.time() - st)
-        # print("INITIALIZE TRAILING EC...")
-        # st = time.time()
-        self.trailing_ec = self.make_ec(data=data, anc=anc, meas_data=meas_data, meas_anc=meas_anc, gamma=gamma,
-                                        gamma_phi=gamma_phi, loss_in=self.base_noise.loss_wait,
-                                        dephasing_in=self.base_noise.dephasing_wait, decoding=recovery)
-        # print("DONE INITIALIZE TRAILING EC...", time.time() - st)
+        data = CatCode(N=self.N, r=0, alpha=self.alpha_data, fockdim=DIM)
+        anc = CatCode(N=self.M, r=0, alpha=self.alpha_anc, fockdim=DIM)
+
+        meas_data, meas_anc = self.make_measurement()
+
+        self.leading_ec = self.make_ec(data=data, anc=anc, meas_data=meas_data, meas_anc=meas_anc, gamma=self.gamma,
+                                       gamma_phi=self.gamma_phi, loss_in=None, dephasing_in=None, recovery=recovery)
+
+        self.trailing_ec = self.make_ec(data=data, anc=anc, meas_data=meas_data, meas_anc=meas_anc, gamma=self.gamma,
+                                        gamma_phi=self.gamma_phi, loss_in=self.base_noise.loss_wait,
+                                        dephasing_in=self.base_noise.dephasing_wait, recovery=recovery)
 
         if decoder == SDP:
             self.decoder = SDPDecoder(code=data, loss=self.base_noise.loss, phase=self.base_noise.phase)
-        elif decoder == FAST:
-            self.decoder = FastDecoder(code=data, loss=self.base_noise.loss)
+        elif decoder == TRANSPOSE:
+            self.decoder = TransposeChannelDecoder(code=data, loss=self.base_noise.loss)
 
         self.infidelity = 1
         self.infidelity_leading_ec = 1
         self.infidelity_trailing_ec = 1
 
-    def make_ec(self, data=None, anc=None, meas_data=None, meas_anc=None, gamma=1e-3, gamma_phi=1e-3, loss_in=None,
-                dephasing_in=None, decoding=MAXIMUM_LIKELIHOOD):
+        if self.scheme == HYBRID and self.M > 1:
+            raise ExtendedGadgetException("Degree of rotation M should be 1 for HYBRID scheme.")
+
+    def make_ec(self, data, anc, meas_data, meas_anc, gamma=1e-3, gamma_phi=1e-3, loss_in=None, dephasing_in=None,
+                recovery=MAXIMUM_LIKELIHOOD):
+        """
+        Returns Knill EC or Hybrid EC. See comments in knill.py and hybrid.py .
+        """
         if self.scheme == KNILL:
-            return KnillEC(data, anc, meas_data, meas_anc, gamma, gamma_phi, loss_in, dephasing_in, decoding)
-        elif self.scheme == KNILL_NO_PREP_NOISE:
-            pass
+            ec = KnillEC(data, anc, meas_data, meas_anc, gamma, gamma_phi, loss_in, dephasing_in, recovery)
         elif self.scheme == HYBRID:
-            return HybridEC(data, anc, meas_data, meas_anc, gamma, gamma_phi, loss_in, dephasing_in, decoding)
+            ec = HybridEC(data, anc, meas_data, meas_anc, gamma, gamma_phi, loss_in, dephasing_in, recovery)
         else:
             raise ExtendedGadgetException("Unknown scheme", self.scheme)
 
-    def make_measurement(self, scheme, N, M, offset_data, offset_anc):
-        if scheme == KNILL:
-            meas_data = LogicalMeasurement(2 * N, DIM, -np.pi / (2 * N), offset_data)
-            meas_anc = LogicalMeasurement(2 * M, DIM, -np.pi / (2 * M), offset_anc)
-            meas_data.noisy([self.base_noise.loss_meas, self.base_noise.dephasing_meas])
-            meas_anc.noisy([self.base_noise.loss_meas, self.base_noise.dephasing_meas])
-        elif scheme == HYBRID:
-            if M > 1:
-                raise ExtendedGadgetException("Degree of rotation M should be 1 for HYBRID scheme.")
-            meas_data = LogicalMeasurement(2 * N, DIM, -np.pi / (2 * N), offset_data)
-            meas_anc = WedgeMeasurement(M * N, DIM, -np.pi / (M * N), offset_anc)
-            meas_data.noisy([self.base_noise.loss_meas_data, self.base_noise.dephasing_meas_data])
-            meas_anc.noisy([self.base_noise.loss_meas_anc, self.base_noise.dephasing_meas_anc])
+        return ec
+
+    def make_measurement(self):
+        """
+        Constructs measurements for data and ancilla mode.
+        """
+        if self.scheme == KNILL:
+            meas_data = LogicalMeasurement(2 * self.N, DIM, -np.pi / (2 * self.N), self.offset_data)
+            meas_anc = LogicalMeasurement(2 * self.M, DIM, -np.pi / (2 * self.M), self.offset_anc)
+        elif self.scheme == HYBRID:
+            meas_data = LogicalMeasurement(2 * self.N, DIM, -np.pi / (2 * self.N), self.offset_data)
+            meas_anc = WedgeMeasurement(self.M * self.N, DIM, -np.pi / (self.M * self.N), self.offset_anc)
+        else:
+            raise ExtendedGadgetException("Unknown scheme", self.scheme)
 
         return meas_data, meas_anc
 
     def run(self):
-        # print("RUNNING LEADING EC...")
-        # st = time.time()
+        """
+        Returns the final qubit-to-qubit channel of the extended gadget.
+        Returns:
+            output: channel
+        """
         cmat_leading_ec = self.leading_ec.run(gmat=None)
-        # print("DONE RUNING LEADING EC...", time.time() - st)
-        # print("RUNNING TRAILING EC...")
-        # st = time.time()
         cmat_trailing_ec = self.trailing_ec.run(gmat=cmat_leading_ec)
-        # print("DONE RUNNING TRAILING EC...", time.time() - st)
-        # print("RUNNING DECODER...")
-        # st = time.time()
         dmat = self.trailing_ec.recovery(cmat_trailing_ec)
         output = self.decoder.decode(dmat)
-        # print("DONE RUNNING DECODER...", time.time() - st)
 
         return output
 
     def get_infidelity(self):
-        # print(">>RUNNING...<<")
-        # st = time.time()
         out_channel = self.run()
         infidelity = average_infidelity(out_channel.channel_matrix)
         self.infidelity = infidelity
-        # print(">>DONE RUNNING...<<", time.time() - st)
         return infidelity
 
     def get_infidelity_leading_ec(self):
+        """Decodes only the leading EC."""
         cmat = self.leading_ec.run()
         dmat = self.leading_ec.recovery(cmat)
         output = self.decoder.decode(dmat)
@@ -143,6 +146,7 @@ class ExtendedGadget:
         return infidelity
 
     def get_infidelity_trailing_ec(self):
+        """Decodes only the trailing EC, ignoring the leading EC. Note that waiting noise is absorbed to trailing EC."""
         cmat = self.trailing_ec.run()
         dmat = self.trailing_ec.recovery(cmat)
         output = self.decoder.decode(dmat)
@@ -151,36 +155,44 @@ class ExtendedGadget:
         return infidelity
 
     def update_alpha(self, alphas):
-        alpha_data, alpha_anc = alphas
-        if alpha_data is not None:
-            data = CatCode(N=self.code_params[0], r=0, alpha=alpha_data, fockdim=DIM)
-            self.code_params[1] = alpha_data
-        else:
-            data = None
-        if alpha_anc is not None:
-            anc = CatCode(N=self.code_params[2], r=0, alpha=alpha_anc, fockdim=DIM)
-            self.code_params[3] = alpha_anc
-        else:
-            anc = None
-
+        """
+        Updates amplitudes of data and ancilla mode.
+        Args:
+            alphas: list
+                A list contains amplitudes of data and ancilla mode, in the form [alpha_data, alpha_anc].
+        """
+        self.alpha_data, self.alpha_anc = alphas
+        self.code_params = [self.N, self.alpha_data, self.M, self.alpha_anc]
+        data = CatCode(N=self.N, r=0, alpha=self.alpha_data, fockdim=DIM)
+        anc = CatCode(N=self.M, r=0, alpha=self.alpha_anc, fockdim=DIM)
         self.leading_ec.update_alpha(data, anc)
         self.trailing_ec.update_alpha(data, anc)
         self.decoder.update_code(data)
 
-    def update_wait_noise(self, eta=None):
-        if eta is not None:
-            gamma_wait = eta * self.noise_params[0]
-            gamma_phi_wait = eta * self.noise_params[1]
-            self.noise_params[2] = eta
-            self.base_noise.update_wait_noise(gamma_wait, gamma_phi_wait)
-            self.trailing_ec.update_in_noise(self.base_noise.loss_wait, self.base_noise.dephasing_wait)
+    def update_wait_noise(self, eta):
+        """
+        Updates waiting noise.
+        Args:
+            eta: int
+                Multiplication factor, with gate loss and dephasing as base.
+        """
+        self.gamma_wait = eta * self.gamma
+        self.gamma_phi_wait = eta * self.gamma_phi
+        self.eta = eta
+        self.noise_params = [self.gamma, self.gamma_phi, self.eta]
+        self.base_noise.update_wait_noise(self.gamma_wait, self.gamma_phi_wait)
+        self.trailing_ec.update_in_noise(self.base_noise.loss_wait, self.base_noise.dephasing_wait)
 
     def update_measurement(self, meas_params):
-        N = self.code_params[0]
-        M = self.code_params[2]
-        offset_data = meas_params[0]
-        offset_anc = meas_params[1]
-        meas_data, meas_anc = self.make_measurement(self.scheme, N, M, offset_data, offset_anc)
+        """
+        Updates measurement offsets.
+        Args:
+            meas_params: list
+                A list contains offsets of measurement of data mode and ancilla mode,
+                in the form [offset_data, offset_anc].
+        """
+        self.offset_data, self.offset_anc = meas_params
+        self.meas_params = [self.offset_data, self.offset_anc]
+        meas_data, meas_anc = self.make_measurement()
         self.leading_ec.update_measurement(meas_data, meas_anc)
         self.trailing_ec.update_measurement(meas_data, meas_anc)
-        self.meas_params = meas_params

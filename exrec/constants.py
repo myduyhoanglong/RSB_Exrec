@@ -5,14 +5,14 @@ HYBRID = 2
 DIRECT = 0
 MAXIMUM_LIKELIHOOD = 1
 
-FAST = 0
+TRANSPOSE = 0
 SDP = 1
 FRONT = 2
 
 ALPHA_MAX = 9
 DIM = int(ALPHA_MAX ** 2 + max(36, ALPHA_MAX * 6))
 
-EXREC_LOG = 1
+DATA_LOG = 1
 OPTIMIZE_LOG = 2
 
 NO_ERROR = 0  # 1(.)1
@@ -28,3 +28,5 @@ DEPHASE_PHASE = 9  # ne^{i(\pi/N^2)n}(.)e^{-i(\pi/N^2)n} + e^{i(\pi/N^2)n}(.)e^{
 LOSS_PHASE = 10  # e^{i(\2pi/N^2)n}a(.)a^{\dagger}e^{-i(\2pi/N^2)n}
 DEPHASE_LOSS = 11  # an(.)a^{\dagger} + a(.)na^{\dagger}
 DEPHASE = 12  # n(.)n
+
+MAX_ETA = 1000

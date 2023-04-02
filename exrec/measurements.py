@@ -90,7 +90,7 @@ class LogicalMeasurement(POVM):
         povm_list = [povm_plus, povm_minus]
         POVM.__init__(self, povm_list)
         self.noiseless_povm_elements = self.povm_elements
-        self.noisy_povm_elements = None
+        self.noisy_povm_elements = self.noiseless_povm_elements
         self.complete_check(silent=True)
 
     def noisy(self, noises):
