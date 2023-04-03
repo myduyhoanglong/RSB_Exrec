@@ -104,10 +104,14 @@ def optimize_fixed_noise_with_init_params(scheme, N, gamma, gamma_phi, init_pair
         (alpha, eta) = init_pair
         init_params = [alpha, offset, eta]
     elif scheme == HYBRID:
-        offset_data = -(np.pi / (2 * N) - np.pi / (2 * N * N))
-        offset_anc = 0
-        (alpha, eta) = init_pair
-        init_params = [alpha, offset_data, offset_anc, eta]
+        if len(init_pair) == 2:
+            offset_data = -(np.pi / (2 * N) - np.pi / (2 * N * N))
+            offset_anc = 0
+            (alpha, eta) = init_pair
+        elif len(init_pair) == 3:
+            offset_anc = 0
+            (alpha, offset_data, eta) = init_pair
+        init_params = [alpha, offset_data, eta]
     else:
         raise Exception("Unknown scheme")
 
@@ -170,7 +174,7 @@ def optimize_model_fixed_noise_with_init_params(scheme, N, gamma, gamma_phi, ini
         elif len(init_pair) == 3:
             offset_anc = 0
             (alpha, offset_data, eta) = init_pair
-        init_params = [alpha, offset_data, offset_anc, eta]
+        init_params = [alpha, offset_data, eta]
     else:
         raise Exception("Unknown scheme")
 
@@ -187,15 +191,15 @@ def optimize_model_fixed_noise_with_init_params(scheme, N, gamma, gamma_phi, ini
 
 def scan_ec_fixed_meas(scheme, model=False):
     """Scan (alpha, eta) landscape, fixing measurement offsets."""
-    alpha_low = 2
-    alpha_high = 5
+    alpha_low = 3
+    alpha_high = 6
     alpha_num = 40
     eta_low = 1
-    eta_high = 100
-    eta_num = 200
+    eta_high = 25
+    eta_num = 50
 
     if model:
-        log_filename = 'model_log_scan.txt'
+        log_filename = 'model_log_scan_2.txt'
     else:
         log_filename = 'log_scan.txt'
 
@@ -203,7 +207,7 @@ def scan_ec_fixed_meas(scheme, model=False):
     decoder = TRANSPOSE
 
     # code params
-    N = 2
+    N = 3
     alpha_data = 4.85
     if scheme == KNILL:
         M = N
@@ -215,11 +219,11 @@ def scan_ec_fixed_meas(scheme, model=False):
         raise Exception("Unknown scheme")
 
     # measurement params
-    offset_data = -0.25
+    offset_data = -0.1
     offset_anc = 0.001
 
     # noise params
-    gamma = 2e-4
+    gamma = 1.6e-3
     gamma_phi = 0
     eta = 1
 
@@ -297,7 +301,7 @@ def scan_ec_varied_meas(scheme, model=False):
     offset_anc = 0.001
 
     # noise params
-    gamma = 4e-4
+    gamma = 1.6e-3
     gamma_phi = 0
     eta = 1
 
@@ -325,6 +329,7 @@ def scan_ec_varied_meas(scheme, model=False):
     op.logger.update_path_log(log_filename)
 
     offsets = np.linspace(start=offset_low, stop=offset_high, num=offset_num)
+    offsets = [-0.28928571428571426]
     for offset in offsets:
         st = time.time()
         alpha = 3

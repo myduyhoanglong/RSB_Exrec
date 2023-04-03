@@ -15,7 +15,7 @@ class Optimizer:
         self.exrec = exrec
         self.benchmark = benchmark
         self.logger = Logger()
-        self.maxiter = 100
+        self.maxiter = 50
         if self.exrec.gamma > 0 and self.exrec.gamma_phi > 0:
             self.max_eta = min(0.1 / self.exrec.gamma, 0.1 / self.exrec.gamma_phi)
         elif self.exrec.gamma > 0:
@@ -80,7 +80,7 @@ class Optimizer:
         def f(params):
             """Function returns ratio between encoded and benchmark infidelity."""
             st = time.time()
-            alpha, offset_data, offset_anc, eta = params
+            alpha, offset_data, eta = params
 
             if alpha < 0 or alpha > ALPHA_MAX:
                 return 10000
@@ -88,7 +88,40 @@ class Optimizer:
                 return 10000
 
             self.exrec.update_alpha([alpha, ALPHA_MAX])
-            self.exrec.update_measurement([offset_data, offset_anc])
+            self.exrec.update_measurement([offset_data, 0])
+            self.exrec.update_wait_noise(eta)
+            self.benchmark.update_noise(self.exrec.gamma_wait, self.exrec.gamma_phi_wait)
+
+            infid_exrec = self.exrec.get_infidelity()
+            infid_benchmark = self.benchmark.get_infidelity()
+            elapse = time.time() - st
+            self.logger.write_optimize_log(list(params), infid_exrec, infid_benchmark, elapse)
+
+            return infid_exrec / infid_benchmark
+
+        optimal_params, ratio = self.run_optimizer(init_params, f)
+        return optimal_params, ratio
+
+    def optimize_hybrid_fixed_meas(self, init_params):
+        """
+        Finds (alpha_data, eta) that minimizes ratio between encoded and benchmark infidelity.
+        Args:
+            init_params: list
+                A list of initial parameters [alpha_data, eta].
+        """
+        self.logger.write_optimize_log_header(self.exrec, init_params)
+
+        def f(params):
+            """Function returns ratio between encoded and benchmark infidelity."""
+            st = time.time()
+            alpha, eta = params
+
+            if alpha < 0 or alpha > ALPHA_MAX:
+                return 10000
+            if eta > self.max_eta:
+                return 10000
+
+            self.exrec.update_alpha([alpha, ALPHA_MAX])
             self.exrec.update_wait_noise(eta)
             self.benchmark.update_noise(self.exrec.gamma_wait, self.exrec.gamma_phi_wait)
 
