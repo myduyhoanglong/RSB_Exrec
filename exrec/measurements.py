@@ -46,6 +46,7 @@ class WedgeMeasurement(POVM):
     def __init__(self, slice, fockdim, base_offset, offset=0.):
         self.fockdim = fockdim
         self.base_offset = base_offset
+        self.offset = offset
         povm_list = []
         for m in range(slice):
             povm = povm_mat(m * 2 * np.pi / slice + self.base_offset + offset,
@@ -78,6 +79,7 @@ class LogicalMeasurement(POVM):
     def __init__(self, slice, fockdim, base_offset, offset=0.):
         self.fockdim = fockdim
         self.base_offset = base_offset
+        self.offset = offset
         povm_plus = 0
         povm_minus = 0
         for m in range(slice):

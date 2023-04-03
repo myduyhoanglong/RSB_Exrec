@@ -64,7 +64,7 @@ def optimize_fixed_noise(scheme, N, gamma, gamma_phi, model=False):
 
 def optimize_fixed_noise_with_init_params(scheme, N, gamma, gamma_phi, init_pair):
     """Find the optimal ratio, fixing loss and dephasing strength and initial parameters."""
-    recovery = DIRECT
+    recovery = MAXIMUM_LIKELIHOOD
     decoder = TRANSPOSE
 
     # code params
@@ -127,7 +127,7 @@ def optimize_fixed_noise_with_init_params(scheme, N, gamma, gamma_phi, init_pair
 
 def optimize_model_fixed_noise_with_init_params(scheme, N, gamma, gamma_phi, init_pair):
     """Find the optimal ratio, fixing loss and dephasing strength and initial parameters."""
-    recovery = DIRECT
+    recovery = MAXIMUM_LIKELIHOOD
     decoder = TRANSPOSE
 
     # code params
@@ -203,7 +203,7 @@ def scan_ec_fixed_meas(scheme, model=False):
     else:
         log_filename = 'log_scan.txt'
 
-    recovery = DIRECT
+    recovery = MAXIMUM_LIKELIHOOD
     decoder = TRANSPOSE
 
     # code params
@@ -281,7 +281,7 @@ def scan_ec_varied_meas(scheme, model=False):
         data_filename = 'meas_data.txt'
         log_filename = 'meas_log.txt'
 
-    recovery = DIRECT
+    recovery = MAXIMUM_LIKELIHOOD
     decoder = TRANSPOSE
 
     # code params

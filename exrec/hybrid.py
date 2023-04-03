@@ -143,9 +143,6 @@ class HybridEC:
         # sum over k,k0 (noise from other EC)
         if gmat is None:
             cmat = np.einsum('abcdezwmn->cdezwmn', cmatr)
-            # sum over k1 if no waiting noise
-            if self.noise.nkraus_in == 1:
-                cmat = np.einsum('cdezwmn->dezwmn', cmat)
         else:
             # cmat(k0,k1,k2,k3;x2,x3,x4;ijmn) = sum_{k} gmat(k,k0;x2;ij) * cmatr(k,k0,k1,k2;x3,x4;mn)
             cmat = np.einsum('abcdezwmn,abyij->bcdeyzwijmn', cmatr, gmat)
@@ -153,7 +150,7 @@ class HybridEC:
         return cmat
 
     def partial_recovery(self, cmatr):
-        if len(cmatr.shape) == 6 or len(cmatr.shape) == 7:
+        if len(cmatr.shape) == 7:
             cmat = self.partial_recovery_one_ec(cmatr)
         elif len(cmatr.shape) == 11:
             cmat = self.partial_recovery_two_ec(cmatr)
@@ -172,27 +169,34 @@ class HybridEC:
                 Partial recovery matrix cmat(k,k0;x;i,j)
                 k: rotation phase, ranging from 0 to N-1
         """
-        lmat = np.empty(self.nmeas_anc, dtype=object)
+        lamat = np.empty((self.nmeas_anc, self.nmeas_data), dtype=object)
         if self.recovery_scheme == DIRECT:
             for x1 in range(self.nmeas_anc):
-                lmat[x1] = x1
+                for x2 in range(self.nmeas_data):
+                    lamat[x1, x2] = (x1, x2)
         else:
-            raise Exception("Not implemented.")
+            cmat_diag = np.zeros((self.mod, self.noise.nkraus, self.nmeas_anc, self.nmeas_data, 2), dtype=complex)
+            for k1 in range(self.noise.nkraus_in):
+                for k2 in range(self.noise.nkraus):
+                    kp = (k1 + k2) % self.mod
+                    for m in range(2):
+                        cmat_diag[kp, :, :, :, m] += cmatr[k1, k2, :, :, :, m, m]
+            emat = np.einsum('kbxym,b->xykm', cmat_diag, self.noise.trace_loss)
+            for x1 in range(self.nmeas_anc):
+                for x2 in range(self.nmeas_data):
+                    idx = (x1, x2, Ellipsis)
+                    (l, a) = np.unravel_index(np.argmax(emat[idx]), emat[idx].shape)
+                    lamat[x1, x2] = (l, a)
 
         cmat = np.zeros((self.mod, self.noise.nkraus, self.nmeas_data, 2, 2), dtype=complex)
-        if len(cmatr.shape) == 6:
-            for x1 in range(self.nmeas_anc):
-                for k2 in range(cmatr.shape[0]):
-                    l = lmat[x1]
-                    kp = (k2 - l) % self.mod
-                    cmat[kp, :, :, :, :] += cmatr[k2, :, x1, :, :, :]
-        elif len(cmatr.shape) == 7:
-            for x1 in range(self.nmeas_anc):
-                for k1 in range(cmatr.shape[0]):
-                    for k2 in range(cmatr.shape[0]):
-                        l = lmat[x1]
+        for x1 in range(self.nmeas_anc):
+            for x2 in range(self.nmeas_data):
+                for k1 in range(self.noise.nkraus_in):
+                    for k2 in range(self.noise.nkraus):
+                        l, a = lamat[x1, x2]
                         kp = (k1 + k2 - l) % self.mod
-                        cmat[kp, :, :, :, :] += cmatr[k1, k2, :, x1, :, :, :]
+                        cmat[kp, :, x2, :, :] += cmatr[k1, k2, :, x1, x2, :, :]
+
         return cmat
 
     def partial_recovery_two_ec(self, cmatr):
@@ -207,21 +211,40 @@ class HybridEC:
                 k: rotation phase, ranging from 0 to N-1
                 k0: loss kraus E_{k0}
         """
-        lmat = np.empty(self.nmeas_anc, dtype=object)
+        labmat = np.empty((self.nmeas_data, self.nmeas_anc, self.nmeas_data), dtype=object)
         if self.recovery_scheme == DIRECT:
-            for x1 in range(self.nmeas_anc):
-                lmat[x1] = x1
+            for x2 in range(self.nmeas_data):
+                for x3 in range(self.nmeas_anc):
+                    for x4 in range(self.nmeas_data):
+                        labmat[x2, x3, x4] = (x2, x3, x4)
         else:
-            raise Exception("Not implemented.")
+            cmat_diag = np.zeros((self.mod, self.noise.nkraus, self.nmeas_data, self.nmeas_anc, self.nmeas_data, 2, 2),
+                                 dtype=complex)
+            for k0 in range(self.noise.nkraus_zero):
+                for k1 in range(self.noise.nkraus_in):
+                    for k2 in range(self.noise.nkraus):
+                        kp = (k0 + k1 + k2) % self.mod
+                        for i in range(2):
+                            for m in range(2):
+                                cmat_diag[kp, :, :, :, :, i, m] += cmatr[k0, k1, k2, :, :, :, :, i, i, m, m]
+            emat = np.einsum('kbyzwim,b->yzwkim', cmat_diag, self.noise.trace_loss)
+            for x2 in range(self.nmeas_data):
+                for x3 in range(self.nmeas_anc):
+                    for x4 in range(self.nmeas_data):
+                        idx = (x2, x3, x4, Ellipsis)
+                        (l, a, b) = np.unravel_index(np.argmax(emat[idx]), emat[idx].shape)
+                        labmat[x2, x3, x4] = (l, a, b)
 
         cmat = np.zeros((self.mod, self.noise.nkraus, self.nmeas_data, self.nmeas_data, 2, 2, 2, 2), dtype=complex)
-        for x3 in range(self.nmeas_anc):
-            for k0 in range(cmatr.shape[0]):
-                for k1 in range(cmatr.shape[1]):
-                    for k2 in range(cmatr.shape[2]):
-                        l = lmat[x3]
-                        kp = (k0 + k1 + k2 - l) % self.mod
-                        cmat[kp, :, :, :, :, :, :, :] += cmatr[k0, k1, k2, :, :, x3, :, :, :, :, :]
+        for x2 in range(self.nmeas_data):
+            for x3 in range(self.nmeas_anc):
+                for x4 in range(self.nmeas_data):
+                    for k0 in range(cmatr.shape[0]):
+                        for k1 in range(cmatr.shape[1]):
+                            for k2 in range(cmatr.shape[2]):
+                                l, a, b = labmat[x2, x3, x4]
+                                kp = (k0 + k1 + k2 - l) % self.mod
+                                cmat[kp, :, x2, x4, :, :, :, :] += cmatr[k0, k1, k2, :, x2, x3, x4, :, :, :, :]
         return cmat
 
     def recovery(self, cmat):
@@ -253,7 +276,15 @@ class HybridEC:
             for x in range(self.nmeas_data):
                 bmat[x] = x
         elif self.recovery_scheme == MAXIMUM_LIKELIHOOD:
-            raise Exception("Not implemented.")
+            cmat_diag = np.zeros((self.noise.nkraus, self.nmeas_data, 2), dtype=complex)
+            for k in range(self.mod):
+                for m in range(2):
+                    cmat_diag[:, :, m] += cmat[k, :, :, m, m]
+            emat = np.einsum('bxm,b->xm', cmat_diag, self.noise.trace_loss)
+            for x in range(self.nmeas_data):
+                idx = (x, Ellipsis)
+                b = np.unravel_index(np.argmax(emat[idx]), emat[idx].shape)
+                bmat[x] = b[0]
 
         # clear up indices -> dmat[k,k0;a,b;i,j,m,n]. Indices a,b keep track of X,Z recovery need to apply.
         dmat = np.zeros((self.mod, self.noise.nkraus, 2, 2, 2, 2, 2, 2), dtype=complex)
@@ -284,7 +315,17 @@ class HybridEC:
                 for x4 in range(self.nmeas_data):
                     abmat[x2, x4] = (x2, x4)
         elif self.recovery_scheme == MAXIMUM_LIKELIHOOD:
-            raise Exception("Not implemented.")
+            cmat_diag = np.zeros((self.noise.nkraus, self.nmeas_data, self.nmeas_data, 2, 2), dtype=complex)
+            for k in range(self.mod):
+                for i in range(2):
+                    for m in range(2):
+                        cmat_diag[:, :, :, i, m] += cmat[k, :, :, :, i, i, m, m]
+            emat = np.einsum('bxyim,b->xyim', cmat_diag, self.noise.trace_loss)
+            for x2 in range(self.nmeas_data):
+                for x4 in range(self.nmeas_data):
+                    idx = (x2, x4, Ellipsis)
+                    (a, b) = np.unravel_index(np.argmax(emat[idx]), emat[idx].shape)
+                    abmat[x2, x4] = (a, b)
 
         # clear up indices -> dmat[k,k0;a,b;i,j,m,n]. Indices a,b keep track of X,Z recovery need to apply.
         dmat = np.zeros((self.mod, self.noise.nkraus, 2, 2, 2, 2, 2, 2), dtype=complex)
