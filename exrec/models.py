@@ -165,8 +165,6 @@ class HybridModel(Model):
         self.eta = eta
         self.noise_params = [self.gamma, self.gamma_phi, self.eta]
         _, self.loss_wait, self.dephasing_wait = self.make_wait_noise()
-        self.noise = HybridNoise(self.gamma, self.gamma_phi, loss_in=self.loss_wait, dephasing_in=self.dephasing_wait,
-                                 N=self.N, mod=self.mod, mod_anc=self.mod_anc)
         self.update_error()
 
     def update_measurement(self, meas_params):

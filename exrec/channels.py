@@ -1,3 +1,5 @@
+import time
+
 import numpy as np
 import qutip as qt
 from helpers import n_pow_op
@@ -83,7 +85,7 @@ class Channel():
             tmp = qt.super_to_choi(self._channel_matrix).ptrace([0])
         ide = qt.identity(tmp.shape[0])
         try:
-            elems = (tmp-ide).data
+            elems = (tmp - ide).data
             dist = np.max(np.abs(elems))
         except:
             print(tmp)
@@ -155,6 +157,27 @@ class LossChannel(Channel):
 
 class DephasingChannel(Channel):
     """Exact dephasing channel."""
+
+    def __init__(self, gamma, dim):
+        kt = gamma
+        self._kt = kt
+
+        data = np.zeros((dim * dim, dim * dim))
+        for l in range(dim * dim):
+            i = l // dim
+            j = l % dim
+            data[l, l] = np.exp(-0.5 * kt * ((i - j) ** 2))
+
+        channel_matrix = qt.Qobj(inpt=data,
+                                 dims=[[[dim], [dim]], [[dim], [dim]]],
+                                 type='super', superrep='super')
+
+        Channel.__init__(self, channel_matrix=channel_matrix)
+        # self.tp_check(silent=True)
+
+
+class DephasingChannel2(Channel):
+    """Depricated. Exact dephasing channel."""
 
     def __init__(self, gamma, dim):
         def block(k, l):
