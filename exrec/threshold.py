@@ -5,7 +5,7 @@ from optimizer import *
 from constants import *
 from extended_gadget import ExtendedGadget
 from noises import BenchMark
-from models import HybridModel
+from models import HybridModel, KnillModel
 
 
 def search_threshold_fixed_dephasing(scheme, N, gamma_phi, gamma_start=1e-4, model=False):
@@ -45,6 +45,46 @@ def search_threshold_fixed_dephasing(scheme, N, gamma_phi, gamma_start=1e-4, mod
         ratio = curr_ratio
 
     return gamma
+
+
+def search_gamma_phi_threshold_fixed_dephasing(scheme, N, gamma, gamma_phi_start=1e-4, model=False):
+    """Binary search for loss threshold (gamma), fixing dephasing strength. Search until cross
+    encoded=benchmark line, then go back once."""
+    cross = False
+    cnt = 0
+    cutoff = 2
+    ratio = None
+    gamma_phi = gamma_phi_start
+    gamma_phi_low = gamma_phi_start
+    gamma_phi_high = gamma_phi_start
+    while not cross or cnt < cutoff:
+        if ratio is None:
+            gamma_phi = gamma_phi_start
+        elif not cross and ratio > 1:
+            gamma_phi = gamma_phi / 2
+        elif not cross and ratio < 1:
+            gamma_phi = 2 * gamma_phi
+        elif cross:
+            gamma_phi = (gamma_phi_low + gamma_phi_high) / 2
+        if cross:
+            cnt += 1
+        curr_ratio = optimize_fixed_noise(scheme, N, gamma, gamma_phi, model)
+        print(gamma_phi, curr_ratio)
+        if ratio is not None and not cross and (curr_ratio > 1 > ratio):
+            cross = True
+            gamma_phi_high = gamma_phi
+            gamma_phi_low = gamma_phi / 2
+        elif ratio is not None and not cross and (curr_ratio < 1 < ratio):
+            cross = True
+            gamma_phi_low = gamma_phi
+            gamma_phi_high = 2 * gamma_phi
+        if cross and curr_ratio > 1:
+            gamma_phi_high = gamma_phi
+        elif cross and curr_ratio < 1:
+            gamma_phi_low = gamma_phi
+        ratio = curr_ratio
+
+    return gamma_phi
 
 
 def optimize_fixed_noise(scheme, N, gamma, gamma_phi, model=False):
@@ -157,7 +197,8 @@ def optimize_model_fixed_noise_with_init_params(scheme, N, gamma, gamma_phi, ini
     benchmark = BenchMark(gamma_wait, gamma_phi_wait)
 
     if scheme == KNILL:
-        pass
+        model = KnillModel(code_params=code_params, meas_params=meas_params, noise_params=noise_params,
+                           recovery=recovery, decoder=decoder)
     elif scheme == HYBRID:
         model = HybridModel(code_params=code_params, meas_params=meas_params, noise_params=noise_params,
                             recovery=recovery, decoder=decoder)

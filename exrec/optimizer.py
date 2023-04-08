@@ -14,8 +14,8 @@ class Optimizer:
     def __init__(self, exrec, benchmark):
         self.exrec = exrec
         self.benchmark = benchmark
-        self.logger = Logger()
-        self.maxiter = 50
+        self.logger = Logger(data_filename='data.txt', log_filename='log.txt')
+        self.maxiter = 100
         if self.exrec.gamma > 0 and self.exrec.gamma_phi > 0:
             self.max_eta = min(0.1 / self.exrec.gamma, 0.1 / self.exrec.gamma_phi)
         elif self.exrec.gamma > 0:
@@ -50,7 +50,7 @@ class Optimizer:
 
             if alpha < 0 or alpha > ALPHA_MAX:
                 return 10000
-            if eta > self.max_eta:
+            if eta < 0 or eta > self.max_eta:
                 return 10000
 
             self.exrec.update_alpha([alpha, alpha])
@@ -84,7 +84,7 @@ class Optimizer:
 
             if alpha < 0 or alpha > ALPHA_MAX:
                 return 10000
-            if eta > self.max_eta:
+            if eta < 0 or eta > self.max_eta:
                 return 10000
 
             self.exrec.update_alpha([alpha, ALPHA_MAX])
@@ -118,7 +118,7 @@ class Optimizer:
 
             if alpha < 0 or alpha > ALPHA_MAX:
                 return 10000
-            if eta > self.max_eta:
+            if eta < 0 or eta > self.max_eta:
                 return 10000
 
             self.exrec.update_alpha([alpha, ALPHA_MAX])
