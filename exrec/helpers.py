@@ -16,7 +16,9 @@ def average_infidelity(gate):
 
 
 def get_nkraus(gamma):
-    if gamma <= 1e-3:
+    if gamma == 0:
+        nkraus = 1
+    elif gamma <= 1e-3:
         nkraus = 9
     elif gamma <= 1e-2:
         nkraus = 12
