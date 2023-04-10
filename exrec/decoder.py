@@ -136,14 +136,17 @@ class TransposeChannelDecoder:
         self.pauli_z = channels.Channel(kraus=[qt.sigmaz()])
 
     def make_recovery(self):
-        N = self.code.N
-        P = self.code.projector
-        norm = self.norm_op()
+        if self.loss._kt == 0:
+            rev = channels.Channel(kraus=[self.encoder.dag()])
+        else:
+            N = self.code.N
+            P = self.code.projector
+            norm = self.norm_op()
 
-        krs = []
-        for k in range(N):
-            krs.append(self.encoder.dag() * P * self.loss.kraus[k].dag() * norm)
-        rev = channels.Channel(kraus=krs)
+            krs = []
+            for k in range(N):
+                krs.append(self.encoder.dag() * P * self.loss.kraus[k].dag() * norm)
+            rev = channels.Channel(kraus=krs)
 
         return rev
 
