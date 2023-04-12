@@ -128,4 +128,5 @@ class Logger:
         self.write(content, log_type=DATA_LOG)
 
         ratio = float(data['ratio'])
-        return ratio
+        params = data['params']
+        return params, ratio

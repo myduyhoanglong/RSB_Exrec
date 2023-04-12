@@ -8,16 +8,31 @@ from noises import BenchMark
 from models import HybridModel, KnillModel
 
 
+def find_boundary(scheme, N, model=False):
+    gamma_phi_power = np.linspace(-4, -2, 11)
+    bdr_set = []
+    path = './logs/boundary.txt'
+    for power in gamma_phi_power:
+        gamma_phi = 10 ** power
+        gamma, params = search_gamma_phi_threshold_fixed_dephasing(scheme, N, gamma_phi, model=model)
+        bdr_set.append((gamma, gamma_phi, params))
+        with open(path, 'a') as writer:
+            writer.write(str((gamma, gamma_phi, params)))
+    return bdr_set
+
+
 def search_threshold_fixed_dephasing(scheme, N, gamma_phi, gamma_start=1e-4, model=False):
     """Binary search for loss threshold (gamma), fixing dephasing strength. Search until cross
     encoded=benchmark line, then go back once."""
     cross = False
     cnt = 0
+    maxcnt = 3
+    cutoff = 1e-6
     ratio = None
     gamma = gamma_start
     gamma_low = gamma_start
     gamma_high = gamma_start
-    while not cross or cnt == 0:
+    while not cross or cnt < maxcnt or gamma > cutoff:
         if ratio is None:
             gamma = gamma_start
         elif not cross and ratio > 1:
@@ -28,8 +43,8 @@ def search_threshold_fixed_dephasing(scheme, N, gamma_phi, gamma_start=1e-4, mod
             gamma = (gamma_low + gamma_high) / 2
         if cross:
             cnt += 1
-        curr_ratio = optimize_fixed_noise(scheme, N, gamma, gamma_phi, model)
-        print(gamma, curr_ratio)
+        curr_params, curr_ratio = optimize_fixed_noise(scheme, N, gamma, gamma_phi, model)
+        print(gamma, curr_params, curr_ratio)
         if ratio is not None and not cross and (curr_ratio > 1 > ratio):
             cross = True
             gamma_high = gamma
@@ -43,8 +58,9 @@ def search_threshold_fixed_dephasing(scheme, N, gamma_phi, gamma_start=1e-4, mod
         elif cross and curr_ratio < 1:
             gamma_low = gamma
         ratio = curr_ratio
+        params = curr_params
 
-    return gamma
+    return gamma, params
 
 
 def search_gamma_phi_threshold_fixed_dephasing(scheme, N, gamma, gamma_phi_start=1e-4, model=False):
@@ -52,12 +68,13 @@ def search_gamma_phi_threshold_fixed_dephasing(scheme, N, gamma, gamma_phi_start
     encoded=benchmark line, then go back once."""
     cross = False
     cnt = 0
-    cutoff = 2
+    maxcnt = 2
+    cutoff = 1e-6
     ratio = None
     gamma_phi = gamma_phi_start
     gamma_phi_low = gamma_phi_start
     gamma_phi_high = gamma_phi_start
-    while not cross or cnt < cutoff:
+    while not cross or cnt < maxcnt or gamma_phi > cutoff:
         if ratio is None:
             gamma_phi = gamma_phi_start
         elif not cross and ratio > 1:
@@ -68,7 +85,7 @@ def search_gamma_phi_threshold_fixed_dephasing(scheme, N, gamma, gamma_phi_start
             gamma_phi = (gamma_phi_low + gamma_phi_high) / 2
         if cross:
             cnt += 1
-        curr_ratio = optimize_fixed_noise(scheme, N, gamma, gamma_phi, model)
+        curr_params, curr_ratio = optimize_fixed_noise(scheme, N, gamma, gamma_phi, model)
         print(gamma_phi, curr_ratio)
         if ratio is not None and not cross and (curr_ratio > 1 > ratio):
             cross = True
@@ -90,16 +107,20 @@ def search_gamma_phi_threshold_fixed_dephasing(scheme, N, gamma, gamma_phi_start
 def optimize_fixed_noise(scheme, N, gamma, gamma_phi, model=False):
     """Find the optimal ratio, fixing loss and dephasing strength. Use multiple initial parameters for optimizer."""
     init_pairs = [(2, 5), (4, 10), (6, 15), (8, 20)]
-    best = None
+    init_pairs = [(4, 10)]
+    best_ratio = None
+    best_params = None
     for init_pair in init_pairs:
         print(N, gamma, gamma_phi, init_pair)
         if model:
-            curr = optimize_model_fixed_noise_with_init_params(scheme, N, gamma, gamma_phi, init_pair)
+            curr_params, curr_ratio = optimize_model_fixed_noise_with_init_params(scheme, N, gamma, gamma_phi,
+                                                                                  init_pair)
         else:
-            curr = optimize_fixed_noise_with_init_params(scheme, N, gamma, gamma_phi, init_pair)
-        if best is None or curr < best:
-            best = curr
-    return best
+            curr_params, curr_ratio = optimize_fixed_noise_with_init_params(scheme, N, gamma, gamma_phi, init_pair)
+        if best_ratio is None or curr_ratio < best_ratio:
+            best_ratio = curr_ratio
+            best_params = curr_params
+    return best_params, best_ratio
 
 
 def optimize_fixed_noise_with_init_params(scheme, N, gamma, gamma_phi, init_pair):
@@ -160,9 +181,9 @@ def optimize_fixed_noise_with_init_params(scheme, N, gamma, gamma_phi, init_pair
         params, ratio = op.optimize_exrec(scheme, init_params)
         op.logger.write_data_log(op.exrec, op.benchmark, init_params, params)
     except:
-        ratio = op.logger.write_last_log_line_to_data(op.exrec, init_params)
+        params, ratio = op.logger.write_last_log_line_to_data(op.exrec, init_params)
         op.logger.write_fail_log()
-    return ratio
+    return params, ratio
 
 
 def optimize_model_fixed_noise_with_init_params(scheme, N, gamma, gamma_phi, init_pair):
@@ -227,7 +248,8 @@ def optimize_model_fixed_noise_with_init_params(scheme, N, gamma, gamma_phi, ini
         op.logger.write_data_log(op.exrec, op.benchmark, init_params, params)
     except:
         ratio = None
-    return ratio
+        params = None
+    return params, ratio
 
 
 def scan_ec_fixed_meas(scheme, model=False):

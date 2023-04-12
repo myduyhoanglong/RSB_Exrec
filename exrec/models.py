@@ -137,7 +137,6 @@ class HybridModel(Model):
             # one location with two losses
             p2 = 5 * self.gate_error[2] + self.wait_error[2]
             inf = p0 + p1 + p2
-            print(pmeas0, pmeas1, p1, p2, inf)
         elif self.N == 3:
             # measurement error, no phase rotation
             pmeas0 = self.meas_error_leading[0] + self.meas_error_trailing[0]
