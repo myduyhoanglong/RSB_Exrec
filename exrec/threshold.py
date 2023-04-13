@@ -14,7 +14,7 @@ def find_boundary(scheme, N, model=False):
     path = './logs/boundary.txt'
     for power in gamma_phi_power:
         gamma_phi = 10 ** power
-        gamma, params = search_gamma_phi_threshold_fixed_dephasing(scheme, N, gamma_phi, model=model)
+        gamma, params = search_threshold_fixed_dephasing(scheme, N, gamma_phi, model=model)
         bdr_set.append((gamma, gamma_phi, params))
         with open(path, 'a') as writer:
             writer.write(str((gamma, gamma_phi, params)))
@@ -32,7 +32,7 @@ def search_threshold_fixed_dephasing(scheme, N, gamma_phi, gamma_start=1e-4, mod
     gamma = gamma_start
     gamma_low = gamma_start
     gamma_high = gamma_start
-    while not cross or cnt < maxcnt or gamma > cutoff:
+    while (not cross or cnt < maxcnt) and gamma > cutoff:
         if ratio is None:
             gamma = gamma_start
         elif not cross and ratio > 1:
@@ -74,7 +74,7 @@ def search_gamma_phi_threshold_fixed_dephasing(scheme, N, gamma, gamma_phi_start
     gamma_phi = gamma_phi_start
     gamma_phi_low = gamma_phi_start
     gamma_phi_high = gamma_phi_start
-    while not cross or cnt < maxcnt or gamma_phi > cutoff:
+    while (not cross or cnt < maxcnt) and gamma_phi > cutoff:
         if ratio is None:
             gamma_phi = gamma_phi_start
         elif not cross and ratio > 1:
@@ -106,8 +106,7 @@ def search_gamma_phi_threshold_fixed_dephasing(scheme, N, gamma, gamma_phi_start
 
 def optimize_fixed_noise(scheme, N, gamma, gamma_phi, model=False):
     """Find the optimal ratio, fixing loss and dephasing strength. Use multiple initial parameters for optimizer."""
-    init_pairs = [(2, 5), (4, 10), (6, 15), (8, 20)]
-    init_pairs = [(4, 10)]
+    init_pairs = [(2, 5), (4, 10), (6, 15)]
     best_ratio = None
     best_params = None
     for init_pair in init_pairs:

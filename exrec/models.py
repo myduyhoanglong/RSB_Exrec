@@ -185,8 +185,8 @@ class HybridModel(Model):
         else:
             raise Exception("Only support N <= 4")
 
-        self.infidelity = inf
-        return inf
+        self.infidelity = 0.5*inf
+        return 0.5*inf
 
     def update_alpha(self, alphas):
         self.alpha_data, self.alpha_anc = alphas
