@@ -14,10 +14,10 @@ def find_boundary(scheme, N, model=False):
     path = './logs/boundary.txt'
     for power in gamma_phi_power:
         gamma_phi = 10 ** power
-        gamma, params = search_threshold_fixed_dephasing(scheme, N, gamma_phi, model=model)
+        gamma, params = search_threshold_fixed_dephasing(scheme, N, gamma_phi, gamma_start=1e-4, model=model)
         bdr_set.append((gamma, gamma_phi, params))
         with open(path, 'a') as writer:
-            writer.write(str((gamma, gamma_phi, params)))
+            writer.write(str((N, gamma, gamma_phi, params)) + '\n')
     return bdr_set
 
 
@@ -26,7 +26,7 @@ def search_threshold_fixed_dephasing(scheme, N, gamma_phi, gamma_start=1e-4, mod
     encoded=benchmark line, then go back once."""
     cross = False
     cnt = 0
-    maxcnt = 3
+    maxcnt = 2
     cutoff = 1e-6
     ratio = None
     gamma = gamma_start
@@ -63,7 +63,7 @@ def search_threshold_fixed_dephasing(scheme, N, gamma_phi, gamma_start=1e-4, mod
     return gamma, params
 
 
-def search_gamma_phi_threshold_fixed_dephasing(scheme, N, gamma, gamma_phi_start=1e-4, model=False):
+def search_gamma_phi_threshold_fixed_loss(scheme, N, gamma, gamma_phi_start=1e-4, model=False):
     """Binary search for loss threshold (gamma), fixing dephasing strength. Search until cross
     encoded=benchmark line, then go back once."""
     cross = False
@@ -106,7 +106,10 @@ def search_gamma_phi_threshold_fixed_dephasing(scheme, N, gamma, gamma_phi_start
 
 def optimize_fixed_noise(scheme, N, gamma, gamma_phi, model=False):
     """Find the optimal ratio, fixing loss and dephasing strength. Use multiple initial parameters for optimizer."""
-    init_pairs = [(2, 5), (4, 10), (6, 15)]
+    if scheme == KNILL:
+        init_pairs = [(2, 2, 5), (4, 4, 10), (6, 6, 15), (8, 8, 20)]
+    elif scheme == HYBRID:
+        init_pairs = [(2, 5), (4, 10), (6, 15)]
     best_ratio = None
     best_params = None
     for init_pair in init_pairs:
@@ -224,9 +227,15 @@ def optimize_model_fixed_noise_with_init_params(scheme, N, gamma, gamma_phi, ini
                             recovery=recovery, decoder=decoder)
 
     if scheme == KNILL:
-        offset = -(np.pi / (2 * N) - np.pi / (2 * N * M))
-        (alpha, eta) = init_pair
-        init_params = [alpha, offset, eta]
+        if len(init_pair) == 2:
+            offset = -(np.pi / (2 * N) - np.pi / (2 * N * M))
+            (alpha, eta) = init_pair
+            init_params = [alpha, offset, eta]
+        elif len(init_pair) == 3:
+            offset_data = -(np.pi / (2 * N) - np.pi / (2 * N * M))
+            offset_anc = -(np.pi / (2 * M) - np.pi / (2 * N * M))
+            (alpha_data, alpha_anc, eta) = init_pair
+            init_params = [alpha_data, alpha_anc, offset_data, offset_anc, eta]
     elif scheme == HYBRID:
         if len(init_pair) == 2:
             offset_data = -(np.pi / (2 * N) - np.pi / (2 * N * N))

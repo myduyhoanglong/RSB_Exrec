@@ -185,8 +185,8 @@ class HybridModel(Model):
         else:
             raise Exception("Only support N <= 4")
 
-        self.infidelity = 0.5*inf
-        return 0.5*inf
+        self.infidelity = 0.5 * inf
+        return 0.5 * inf
 
     def update_alpha(self, alphas):
         self.alpha_data, self.alpha_anc = alphas
@@ -231,7 +231,6 @@ class KnillModel(Model):
         self.meas_error_leading_data, self.meas_error_leading_anc, self.meas_error_trailing_data, self.meas_error_trailing_anc = self.init_meas_error()
 
     def make_wait_noise(self):
-        # Note that loss in one last location of leading EC is NOT combined with waiting loss in this model.
         nkraus_wait = get_nkraus(self.gamma_wait)
         loss_wait = LossChannel(self.gamma_wait, DIM, nkraus_wait)
         if self.gamma_phi_wait > 0:
@@ -277,7 +276,7 @@ class KnillModel(Model):
         probs_leading_anc = []
         for k in range(self.N):
             s = self.noise.phase[k] * self.anc.minus
-            p = qt.expect(self.meas_data.povm_elements[0], s * s.dag())
+            p = qt.expect(self.meas_anc.povm_elements[0], s * s.dag())
             probs_leading_anc.append(p)
 
         probs_trailing_anc = list(probs_leading_anc)
@@ -305,10 +304,13 @@ class KnillModel(Model):
             # measurement error
             p0 = pmeas0 + pmeas1
             # two locations with one loss
-            p1 = 4 * (self.gate_error_anc[1] ** 2) + 3 * (self.gate_error_data[1] ** 2) \
+            # p1 = 4 * (self.gate_error_anc[1] ** 2) + 3 * (self.gate_error_data[1] ** 2) \
+            #      + 3 * self.gate_error_data[1] * self.wait_error[1]
+            p1 = 4 * (self.gate_error_anc[1] ** 2) + 4 * (self.gate_error_data[1] ** 2) \
                  + 3 * self.gate_error_data[1] * self.wait_error[1]
             # one location with two losses
-            p2 = 3 * self.gate_error_data[2] + 4 * self.gate_error_anc[2] + self.wait_error[2]
+            # p2 = 3 * self.gate_error_data[2] + 4 * self.gate_error_anc[2] + self.wait_error[2]
+            p2 = 4 * self.gate_error_data[2] + 4 * self.gate_error_anc[2] + self.wait_error[2]
             inf = p0 + p1 + p2
         elif self.N == 3:
             # measurement error, no phase rotation
@@ -386,8 +388,8 @@ class KnillModel(Model):
         else:
             raise Exception("Only support N <= 4")
 
-        self.infidelity = inf
-        return inf
+        self.infidelity = 0.25 * inf
+        return 0.25 * inf
 
     def update_alpha(self, alphas):
         self.alpha_data, self.alpha_anc = alphas
@@ -402,7 +404,7 @@ class KnillModel(Model):
         self.eta = eta
         self.noise_params = [self.gamma, self.gamma_phi, self.eta]
         _, self.loss_wait, self.dephasing_wait = self.make_wait_noise()
-        self.update_error(gate=False)
+        self.update_error(gate=False, wait=True, meas=True)
 
     def update_measurement(self, meas_params):
         self.offset_data, self.offset_anc = meas_params
