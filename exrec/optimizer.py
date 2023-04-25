@@ -15,7 +15,7 @@ class Optimizer:
         self.exrec = exrec
         self.benchmark = benchmark
         self.logger = Logger(data_filename='data.txt', log_filename='log.txt')
-        self.maxiter = 100
+        self.maxiter = 60
         if self.exrec.gamma > 0 and self.exrec.gamma_phi > 0:
             self.max_eta = min(0.1 / self.exrec.gamma, 0.1 / self.exrec.gamma_phi)
         elif self.exrec.gamma > 0:

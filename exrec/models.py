@@ -304,13 +304,10 @@ class KnillModel(Model):
             # measurement error
             p0 = pmeas0 + pmeas1
             # two locations with one loss
-            # p1 = 4 * (self.gate_error_anc[1] ** 2) + 3 * (self.gate_error_data[1] ** 2) \
-            #      + 3 * self.gate_error_data[1] * self.wait_error[1]
-            p1 = 4 * (self.gate_error_anc[1] ** 2) + 4 * (self.gate_error_data[1] ** 2) \
+            p1 = 4 * (self.gate_error_anc[1] ** 2) + 3 * (self.gate_error_data[1] ** 2) \
                  + 3 * self.gate_error_data[1] * self.wait_error[1]
             # one location with two losses
-            # p2 = 3 * self.gate_error_data[2] + 4 * self.gate_error_anc[2] + self.wait_error[2]
-            p2 = 4 * self.gate_error_data[2] + 4 * self.gate_error_anc[2] + self.wait_error[2]
+            p2 = 3 * self.gate_error_data[2] + 4 * self.gate_error_anc[2] + self.wait_error[2]
             inf = p0 + p1 + p2
         elif self.N == 3:
             # measurement error, no phase rotation

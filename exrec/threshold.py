@@ -35,7 +35,7 @@ def search_threshold_fixed_dephasing(scheme, N, gamma_phi, gamma_start=1e-4, mod
     while (not cross or cnt < maxcnt) and gamma > cutoff:
         if ratio is None:
             gamma = gamma_start
-        elif not cross and ratio > 1:
+        elif not cross and ratio >= 1:
             gamma = gamma / 2
         elif not cross and ratio < 1:
             gamma = 2 * gamma
@@ -45,15 +45,15 @@ def search_threshold_fixed_dephasing(scheme, N, gamma_phi, gamma_start=1e-4, mod
             cnt += 1
         curr_params, curr_ratio = optimize_fixed_noise(scheme, N, gamma, gamma_phi, model)
         print(gamma, curr_params, curr_ratio)
-        if ratio is not None and not cross and (curr_ratio > 1 > ratio):
+        if ratio is not None and not cross and (curr_ratio >= 1 > ratio):
             cross = True
             gamma_high = gamma
             gamma_low = gamma / 2
-        elif ratio is not None and not cross and (curr_ratio < 1 < ratio):
+        elif ratio is not None and not cross and (curr_ratio < 1 <= ratio):
             cross = True
             gamma_low = gamma
             gamma_high = 2 * gamma
-        if cross and curr_ratio > 1:
+        if cross and curr_ratio >= 1:
             gamma_high = gamma
         elif cross and curr_ratio < 1:
             gamma_low = gamma
@@ -163,22 +163,41 @@ def optimize_fixed_noise_with_init_params(scheme, N, gamma, gamma_phi, init_pair
     print(">>DONE INITIALIZE EXREC...<<", time.time() - st)
 
     if scheme == KNILL:
-        offset = -(np.pi / (2 * N) - np.pi / (2 * N * M))
-        (alpha, eta) = init_pair
-        init_params = [alpha, offset, eta]
+        if len(init_pair) == 2:
+            offset = -(np.pi / (2 * N) - np.pi / (2 * N * M))
+            (alpha, eta) = init_pair
+            init_params = [alpha, offset, eta]
+        elif len(init_pair) == 3:
+            offset_data = -(np.pi / (2 * N) - np.pi / (2 * N * M))
+            offset_anc = -(np.pi / (2 * M) - np.pi / (2 * N * M))
+            (alpha_data, alpha_anc, eta) = init_pair
+            init_params = [alpha_data, alpha_anc, offset_data, offset_anc, eta]
     elif scheme == HYBRID:
         if len(init_pair) == 2:
             offset_data = -(np.pi / (2 * N) - np.pi / (2 * N * N))
             offset_anc = 0
             (alpha, eta) = init_pair
+            init_params = [alpha, offset_data, eta]
         elif len(init_pair) == 3:
             offset_anc = 0
             (alpha, offset_data, eta) = init_pair
-        init_params = [alpha, offset_data, eta]
+            init_params = [alpha, offset_data, eta]
     else:
         raise Exception("Unknown scheme")
 
     op = Optimizer(exrec, benchmark)
+    if scheme == KNILL:
+        data_file = 'data_knill.txt'
+        log_file = 'log_knill.txt'
+    elif scheme == HYBRID:
+        data_file = 'data_hybrid.txt'
+        log_file = 'log_hybrid.txt'
+    else:
+        data_file = 'data.txt'
+        log_file = 'log.txt'
+    op.logger.update_path_data(data_file)
+    op.logger.update_path_log(log_file)
+
     try:
         params, ratio = op.optimize_exrec(scheme, init_params)
         op.logger.write_data_log(op.exrec, op.benchmark, init_params, params)
@@ -369,7 +388,7 @@ def scan_ec_varied_meas(scheme, model=False):
 
     # measurement params
     offset_data = -0.25
-    offset_anc = 0.001
+    offset_anc = 0.00
 
     # noise params
     gamma = 1.6e-3
@@ -399,17 +418,31 @@ def scan_ec_varied_meas(scheme, model=False):
     op.logger.update_path_data(data_filename)
     op.logger.update_path_log(log_filename)
 
-    offsets = np.linspace(start=offset_low, stop=offset_high, num=offset_num)
-    offsets = [-0.28928571428571426]
-    for offset in offsets:
-        st = time.time()
-        alpha = 3
-        eta = 5
-        init_params = [alpha, eta]
-        exrec.update_measurement([offset, offset_anc])
+    # offsets = np.linspace(start=offset_low, stop=offset_high, num=offset_num)
+    offsets = [-0.289, -0.049, -0.039, -0.032, -0.016, -0.017]
+    alphas = [4.51, 2.61, 2.43, 2.23, 1.91]
+    gammas = [1e-4, 2e-4, 4e-4, 8e-4, 1.6e-3]
+    # for offset in offsets:
+    #     st = time.time()
+    #     alpha = 3
+    #     eta = 5
+    #     init_params = [alpha, eta]
+    #     exrec.update_measurement([offset, offset_anc])
+    #     params, ratio = op.optimize_hybrid_fixed_meas(init_params)
+    #     init_params = [alpha, offset, offset_anc, eta]
+    #     params = [params[0], offset, offset_anc, params[1]]
+    #     op.logger.write_data_log(op.exrec, op.benchmark, init_params, params)
+    #     elapse = time.time() - st
+    #     print(offset, params, ratio, elapse)
+
+    for i, alpha in enumerate(alphas):
+        code_params = [N, alpha, M, ALPHA_MAX]
+        meas_params = [offsets[i], 0.0]
+        noise_params = [gammas[i], 0, 1]
+        exrec = ExtendedGadget(scheme=scheme, code_params=code_params, meas_params=meas_params,
+                               noise_params=noise_params,
+                               recovery=recovery, decoder=decoder)
+        op = Optimizer(exrec, benchmark)
+        init_params = [5]
         params, ratio = op.optimize_hybrid_fixed_meas(init_params)
-        init_params = [alpha, offset, offset_anc, eta]
-        params = [params[0], offset, offset_anc, params[1]]
-        op.logger.write_data_log(op.exrec, op.benchmark, init_params, params)
-        elapse = time.time() - st
-        print(offset, params, ratio, elapse)
+        print(alpha, params, ratio)
