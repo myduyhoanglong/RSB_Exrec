@@ -107,7 +107,7 @@ def search_gamma_phi_threshold_fixed_loss(scheme, N, gamma, gamma_phi_start=1e-4
 def optimize_fixed_noise(scheme, N, gamma, gamma_phi, model=False):
     """Find the optimal ratio, fixing loss and dephasing strength. Use multiple initial parameters for optimizer."""
     if scheme == KNILL:
-        init_pairs = [(2, 2, 5), (4, 4, 10), (6, 6, 15), (8, 8, 20)]
+        init_pairs = [(2, 8, 5), (4, 8, 10), (6, 8, 15), (8, 8, 20)]
     elif scheme == HYBRID:
         init_pairs = [(2, 5), (4, 10), (6, 15)]
     best_ratio = None
@@ -133,7 +133,7 @@ def optimize_fixed_noise_with_init_params(scheme, N, gamma, gamma_phi, init_pair
     # code params
     alpha_data = 4
     if scheme == KNILL:
-        M = N
+        M = 1
         alpha_anc = alpha_data
     elif scheme == HYBRID:
         M = 1
@@ -171,6 +171,9 @@ def optimize_fixed_noise_with_init_params(scheme, N, gamma, gamma_phi, init_pair
             offset_data = -(np.pi / (2 * N) - np.pi / (2 * N * M))
             offset_anc = -(np.pi / (2 * M) - np.pi / (2 * N * M))
             (alpha_data, alpha_anc, eta) = init_pair
+            init_params = [alpha_data, alpha_anc, offset_data, offset_anc, eta]
+        elif len(init_pair) == 5:
+            (alpha_data, alpha_anc, offset_data, offset_anc, eta) = init_pair
             init_params = [alpha_data, alpha_anc, offset_data, offset_anc, eta]
     elif scheme == HYBRID:
         if len(init_pair) == 2:
@@ -215,7 +218,7 @@ def optimize_model_fixed_noise_with_init_params(scheme, N, gamma, gamma_phi, ini
     # code params
     alpha_data = 4
     if scheme == KNILL:
-        M = N
+        M = 1
         alpha_anc = alpha_data
     elif scheme == HYBRID:
         M = 1
@@ -253,7 +256,11 @@ def optimize_model_fixed_noise_with_init_params(scheme, N, gamma, gamma_phi, ini
         elif len(init_pair) == 3:
             offset_data = -(np.pi / (2 * N) - np.pi / (2 * N * M))
             offset_anc = -(np.pi / (2 * M) - np.pi / (2 * N * M))
+            print(offset_data, offset_anc)
             (alpha_data, alpha_anc, eta) = init_pair
+            init_params = [alpha_data, alpha_anc, offset_data, offset_anc, eta]
+        elif len(init_pair) == 5:
+            (alpha_data, alpha_anc, offset_data, offset_anc, eta) = init_pair
             init_params = [alpha_data, alpha_anc, offset_data, offset_anc, eta]
     elif scheme == HYBRID:
         if len(init_pair) == 2:
@@ -271,6 +278,7 @@ def optimize_model_fixed_noise_with_init_params(scheme, N, gamma, gamma_phi, ini
     op.logger.update_path_data('model_data.txt')
     op.logger.update_path_log('model_log.txt')
     try:
+        print(init_params)
         params, ratio = op.optimize_exrec(scheme, init_params)
         op.logger.write_data_log(op.exrec, op.benchmark, init_params, params)
     except:
