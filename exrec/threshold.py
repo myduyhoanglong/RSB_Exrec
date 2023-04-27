@@ -107,13 +107,12 @@ def search_gamma_phi_threshold_fixed_loss(scheme, N, gamma, gamma_phi_start=1e-4
 def optimize_fixed_noise(scheme, N, gamma, gamma_phi, model=False):
     """Find the optimal ratio, fixing loss and dephasing strength. Use multiple initial parameters for optimizer."""
     if scheme == KNILL:
-        init_pairs = [(2, 8, 5), (4, 8, 10), (6, 8, 15), (8, 8, 20)]
+        init_pairs = [(3, 8, -0.1, -0.1, 7), (3, 8, -0.3, -0.3, 7), (5, 8, -0.1, -0.1, 15), (5, 8, -0.3, -0.3, 15)]
     elif scheme == HYBRID:
         init_pairs = [(2, 5), (4, 10), (6, 15)]
     best_ratio = None
     best_params = None
     for init_pair in init_pairs:
-        print(N, gamma, gamma_phi, init_pair)
         if model:
             curr_params, curr_ratio = optimize_model_fixed_noise_with_init_params(scheme, N, gamma, gamma_phi,
                                                                                   init_pair)
@@ -133,7 +132,7 @@ def optimize_fixed_noise_with_init_params(scheme, N, gamma, gamma_phi, init_pair
     # code params
     alpha_data = 4
     if scheme == KNILL:
-        M = 1
+        M = N
         alpha_anc = alpha_data
     elif scheme == HYBRID:
         M = 1
@@ -218,7 +217,7 @@ def optimize_model_fixed_noise_with_init_params(scheme, N, gamma, gamma_phi, ini
     # code params
     alpha_data = 4
     if scheme == KNILL:
-        M = 1
+        M = N
         alpha_anc = alpha_data
     elif scheme == HYBRID:
         M = 1
@@ -256,7 +255,6 @@ def optimize_model_fixed_noise_with_init_params(scheme, N, gamma, gamma_phi, ini
         elif len(init_pair) == 3:
             offset_data = -(np.pi / (2 * N) - np.pi / (2 * N * M))
             offset_anc = -(np.pi / (2 * M) - np.pi / (2 * N * M))
-            print(offset_data, offset_anc)
             (alpha_data, alpha_anc, eta) = init_pair
             init_params = [alpha_data, alpha_anc, offset_data, offset_anc, eta]
         elif len(init_pair) == 5:
@@ -278,7 +276,6 @@ def optimize_model_fixed_noise_with_init_params(scheme, N, gamma, gamma_phi, ini
     op.logger.update_path_data('model_data.txt')
     op.logger.update_path_log('model_log.txt')
     try:
-        print(init_params)
         params, ratio = op.optimize_exrec(scheme, init_params)
         op.logger.write_data_log(op.exrec, op.benchmark, init_params, params)
     except:
@@ -289,23 +286,23 @@ def optimize_model_fixed_noise_with_init_params(scheme, N, gamma, gamma_phi, ini
 
 def scan_ec_fixed_meas(scheme, model=False):
     """Scan (alpha, eta) landscape, fixing measurement offsets."""
-    alpha_low = 3
+    alpha_low = 2
     alpha_high = 6
-    alpha_num = 40
+    alpha_num = 41
     eta_low = 1
     eta_high = 25
     eta_num = 50
 
     if model:
-        log_filename = 'model_log_scan_2.txt'
+        log_filename = 'model_scan_knill.txt'
     else:
-        log_filename = 'log_scan.txt'
+        log_filename = 'scan_knill.txt'
 
     recovery = MAXIMUM_LIKELIHOOD
     decoder = TRANSPOSE
 
     # code params
-    N = 3
+    N = 2
     alpha_data = 4.85
     if scheme == KNILL:
         M = N
@@ -317,11 +314,11 @@ def scan_ec_fixed_meas(scheme, model=False):
         raise Exception("Unknown scheme")
 
     # measurement params
-    offset_data = -0.1
-    offset_anc = 0.001
+    offset_data = -0.3
+    offset_anc = -0.3
 
     # noise params
-    gamma = 1.6e-3
+    gamma = 2e-4
     gamma_phi = 0
     eta = 1
 
@@ -338,8 +335,11 @@ def scan_ec_fixed_meas(scheme, model=False):
         if scheme == HYBRID:
             exrec = HybridModel(code_params=code_params, meas_params=meas_params, noise_params=noise_params,
                                 recovery=recovery, decoder=decoder)
+        elif scheme == KNILL:
+            exrec = KnillModel(code_params=code_params, meas_params=meas_params, noise_params=noise_params,
+                                recovery=recovery, decoder=decoder)
         else:
-            raise Exception("Unknown scheme")
+            raise Exception("Unknown scheme.")
     else:
         exrec = ExtendedGadget(scheme=scheme, code_params=code_params, meas_params=meas_params,
                                noise_params=noise_params, recovery=recovery, decoder=decoder)
@@ -354,7 +354,10 @@ def scan_ec_fixed_meas(scheme, model=False):
             st = time.time()
             init_params = [alpha, eta]
 
-            exrec.update_alpha([alpha, ALPHA_MAX])
+            if scheme == HYBRID:
+                exrec.update_alpha([alpha, ALPHA_MAX])
+            elif scheme == KNILL:
+                exrec.update_alpha([alpha, alpha])
             exrec.update_wait_noise(eta)
             benchmark.update_noise(exrec.gamma_wait, exrec.gamma_phi_wait)
 

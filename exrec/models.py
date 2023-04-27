@@ -297,18 +297,19 @@ class KnillModel(Model):
             pmeas0 = self.meas_error_leading_data[0] + self.meas_error_leading_anc[0] \
                      + self.meas_error_trailing_data[0] + self.meas_error_trailing_anc[0]
             # measurement error, one phase rotation, due to one loss somewhere
-            pmeas1 = self.meas_error_leading_data[1] * 2 * self.gate_error_anc[1] \
-                     + self.meas_error_leading_anc[1] * self.gate_error_data[1] \
-                     + self.meas_error_trailing_data[1] * 3 * self.gate_error_anc[1] \
-                     + self.meas_error_trailing_anc[1] * (3 * self.gate_error_data[1] + self.wait_error[1])
+            pmeas1 = self.meas_error_leading_anc[1] * self.gate_error_data[1] \
+                     + self.meas_error_leading_data[1] * 2 * self.gate_error_anc[1] \
+                     + self.meas_error_trailing_anc[1] * (3 * self.gate_error_data[1] + self.wait_error[1]) \
+                     + self.meas_error_trailing_data[1] * 3 * self.gate_error_anc[1]
             # measurement error
             p0 = pmeas0 + pmeas1
             # two locations with one loss
             p1 = 4 * (self.gate_error_anc[1] ** 2) + 3 * (self.gate_error_data[1] ** 2) \
                  + 3 * self.gate_error_data[1] * self.wait_error[1]
             # one location with two losses
-            p2 = 3 * self.gate_error_data[2] + 4 * self.gate_error_anc[2] + self.wait_error[2]
+            p2 = self.gate_error_data[2] + 2 * self.gate_error_anc[2] + self.wait_error[2]
             inf = p0 + p1 + p2
+
         elif self.N == 3:
             # measurement error, no phase rotation
             pmeas0 = self.meas_error_leading_data[0] + self.meas_error_leading_anc[0] \
@@ -337,6 +338,7 @@ class KnillModel(Model):
             # one location with three losses
             p3 = 3 * self.gate_error_data[3] + 4 * self.gate_error_anc[3] + self.wait_error[3]
             inf = p0 + p1 + p2 + p3
+
         elif self.N == 4:
             # measurement error, no phase rotation
             pmeas0 = self.meas_error_leading_data[0] + self.meas_error_leading_anc[0] \
@@ -386,7 +388,7 @@ class KnillModel(Model):
             raise Exception("Only support N <= 4")
 
         self.infidelity = 0.25 * inf
-        return 0.25 * inf
+        return 0.5 * inf
 
     def update_alpha(self, alphas):
         self.alpha_data, self.alpha_anc = alphas
