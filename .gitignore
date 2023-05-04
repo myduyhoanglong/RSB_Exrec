@@ -126,3 +126,5 @@ dmypy.json
 .idea/
 
 exrec/plots/
+
+exrec/archived/
