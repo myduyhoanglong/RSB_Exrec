@@ -77,7 +77,7 @@ def search_gamma_phi_threshold_fixed_loss(scheme, N, gamma, gamma_phi_start=1e-4
     while (not cross or cnt < maxcnt) and gamma_phi > cutoff:
         if ratio is None:
             gamma_phi = gamma_phi_start
-        elif not cross and ratio > 1:
+        elif not cross and ratio >= 1:
             gamma_phi = gamma_phi / 2
         elif not cross and ratio < 1:
             gamma_phi = 2 * gamma_phi
@@ -87,15 +87,15 @@ def search_gamma_phi_threshold_fixed_loss(scheme, N, gamma, gamma_phi_start=1e-4
             cnt += 1
         curr_params, curr_ratio = optimize_fixed_noise(scheme, N, gamma, gamma_phi, model)
         print(gamma_phi, curr_ratio)
-        if ratio is not None and not cross and (curr_ratio > 1 > ratio):
+        if ratio is not None and not cross and (curr_ratio >= 1 > ratio):
             cross = True
             gamma_phi_high = gamma_phi
             gamma_phi_low = gamma_phi / 2
-        elif ratio is not None and not cross and (curr_ratio < 1 < ratio):
+        elif ratio is not None and not cross and (curr_ratio < 1 <= ratio):
             cross = True
             gamma_phi_low = gamma_phi
             gamma_phi_high = 2 * gamma_phi
-        if cross and curr_ratio > 1:
+        if cross and curr_ratio >= 1:
             gamma_phi_high = gamma_phi
         elif cross and curr_ratio < 1:
             gamma_phi_low = gamma_phi

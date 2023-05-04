@@ -336,7 +336,7 @@ class KnillModel(Model):
                  + 6 * self.gate_error_data[1] * self.gate_error_data[2] \
                  + 3 * (self.gate_error_data[1] * self.wait_error[2] + self.gate_error_data[2] * self.wait_error[1])
             # one location with three losses
-            p3 = 3 * self.gate_error_data[3] + 4 * self.gate_error_anc[3] + self.wait_error[3]
+            p3 = self.gate_error_data[3] + 2 * self.gate_error_anc[3] + self.wait_error[3]
             inf = p0 + p1 + p2 + p3
 
         elif self.N == 4:
@@ -363,10 +363,10 @@ class KnillModel(Model):
                      + self.meas_error_trailing_data[3] * (
                              6 * self.gate_error_anc[1] * self.gate_error_anc[2] + 3 * self.gate_error_anc[3]) \
                      + self.meas_error_trailing_anc[3] * (
-                             (self.gate_error_data[1] ** 3) + 3 * (self.gate_error_data[1] ** 2) * self.wait_error[
-                         1] + 3 * self.gate_error_data[1] * self.gate_error_data[2] + 3 * (
-                                     self.gate_error_data[1] * self.wait_error[2] * self.gate_error_data[2] *
-                                     self.wait_error[1]) + 3 * self.gate_error_data[3] + self.wait_error[3])
+                             (self.gate_error_data[1] ** 3) + 3 * self.gate_error_data[1] * self.gate_error_data[2]
+                             + 3 * self.gate_error_data[3] + 3 * (self.gate_error_data[1] ** 2) * self.wait_error[1]
+                             + 3 * self.gate_error_data[2] * self.wait_error[1] + 3 * self.gate_error_data[1] *
+                             self.wait_error[2] + 3 * self.wait_error[3])
             # measurement error
             p0 = pmeas0 + pmeas1 + pmeas2 + pmeas3
             # four locations with one loss
@@ -382,12 +382,12 @@ class KnillModel(Model):
                   + 3 * self.gate_error_data[2] * self.wait_error[2]
             p3 = p31 + p32
             # one location with 4 losses
-            p4 = 3 * self.gate_error_data[4] + 4 * self.gate_error_anc[4] + self.wait_error[4]
+            p4 = self.gate_error_data[4] + 2 * self.gate_error_anc[4] + self.wait_error[4]
             inf = p0 + p1 + p2 + p3 + p4
         else:
             raise Exception("Only support N <= 4")
 
-        self.infidelity = 0.25 * inf
+        self.infidelity = 0.5 * inf
         return 0.5 * inf
 
     def update_alpha(self, alphas):
