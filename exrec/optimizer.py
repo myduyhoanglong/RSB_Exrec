@@ -23,9 +23,12 @@ class Optimizer:
         else:
             self.max_eta = MAX_ETA
 
-    def optimize_exrec(self, scheme, init_params):
+    def optimize_exrec(self, scheme, init_params, proj_meas=False):
         if scheme == KNILL:
-            result = self.optimize_knill(init_params)
+            if proj_meas:
+                result = self.optimize_knill_proj_meas(init_params)
+            else:
+                result = self.optimize_knill(init_params)
         elif scheme == HYBRID:
             result = self.optimize_hybrid(init_params)
         else:
@@ -97,6 +100,31 @@ class Optimizer:
 
             self.exrec.update_alpha([alpha_data, alpha_anc])
             self.exrec.update_measurement([offset_data, offset_anc])
+            self.exrec.update_wait_noise(eta)
+            self.benchmark.update_noise(self.exrec.gamma_wait, self.exrec.gamma_phi_wait)
+
+            infid_exrec = self.exrec.get_infidelity()
+            infid_benchmark = self.benchmark.get_infidelity()
+            elapse = time.time() - st
+            self.logger.write_optimize_log(list(params), infid_exrec, infid_benchmark, elapse)
+            return infid_exrec / infid_benchmark
+
+        optimal_params, ratio = self.run_optimizer(init_params, f)
+        return [optimal_params, ratio]
+
+    def optimize_knill_proj_meas(self, init_params):
+        self.logger.write_optimize_log_header(self.exrec, init_params)
+
+        def f(params):
+            st = time.time()
+            alpha_data, alpha_anc, eta = params
+
+            if min(alpha_data, alpha_anc) < 0 or max(alpha_data, alpha_anc) > ALPHA_MAX:
+                return 10000
+            if eta < 0 or eta > self.max_eta:
+                return 10000
+
+            self.exrec.update_alpha([alpha_data, alpha_anc])
             self.exrec.update_wait_noise(eta)
             self.benchmark.update_noise(self.exrec.gamma_wait, self.exrec.gamma_phi_wait)
 

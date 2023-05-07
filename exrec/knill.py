@@ -281,6 +281,16 @@ class KnillEC:
         if anc is not None:
             self.anc = anc
 
+    def update_alpha_proj_meas(self, data, anc, meas_data, meas_anc):
+        if data is not None:
+            self.data = data
+        if anc is not None:
+            self.anc = anc
+        self.meas_data.noisy([self.noise.loss_meas, self.noise.dephasing_meas])
+        self.meas_anc.noisy([self.noise.loss_meas, self.noise.dephasing_meas])
+        if self.noise.dephasing_in is not None:
+            self.meas_data.apply_dephasing(self.noise.dephasing_in)
+
     def update_in_noise(self, loss_in, dephasing_in):
         """Updates waiting noise"""
         self.noise.update_in_noise(loss_in, dephasing_in)

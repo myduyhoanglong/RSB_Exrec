@@ -145,6 +145,35 @@ class PhaseMeasurement(POVM):
         POVM.__init__(self, povm_list, kraus=povm_list, outcomes=outcomes)
 
 
+class ProjectiveMeasurement(POVM):
+    def __init__(self, code):
+        plus = code.plus * code.plus.dag()
+        minus = code.minus * code.minus.dag()
+        comp = code.identity - plus - minus
+        povm_list = [plus, minus, comp]
+        POVM.__init__(self, povm_list)
+        self.noiseless_povm_elements = self.povm_elements
+        self.noisy_povm_elements = self.noiseless_povm_elements
+        self.complete_check(silent=True)
+
+    def noisy(self, noises):
+        loss, dephasing = noises
+        new_povm = self.povm_elements
+        if loss is not None:
+            new_povm = [sum([k.dag() * m * k for k in loss.kraus]) for m in self.noiseless_povm_elements]  # dual loss
+        if dephasing is not None:
+            new_povm = [dephasing(m) for m in new_povm]
+        POVM.__init__(self, new_povm)
+        self.noisy_povm_elements = self.povm_elements
+        self.complete_check(silent=True)
+
+    def apply_dephasing(self, dephasing):
+        # Apply dephasing on top of base noise.
+        if dephasing is not None:
+            new_povm = [dephasing(m) for m in self.noisy_povm_elements]
+            POVM.__init__(self, new_povm)
+
+
 class ADHMatrix():
     def __init__(self, dim):
         self.dim = dim

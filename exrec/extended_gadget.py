@@ -1,7 +1,9 @@
+import time
+
 import numpy as np
 
 from codes import CatCode
-from measurements import LogicalMeasurement, WedgeMeasurement
+from measurements import LogicalMeasurement, WedgeMeasurement, ProjectiveMeasurement
 from decoder import SDPDecoder, TransposeChannelDecoder
 from knill import KnillEC
 from hybrid import HybridEC
@@ -67,7 +69,10 @@ class ExtendedGadget:
         data = CatCode(N=self.N, r=0, alpha=self.alpha_data, fockdim=DIM)
         anc = CatCode(N=self.M, r=0, alpha=self.alpha_anc, fockdim=DIM)
 
-        meas_data, meas_anc = self.make_measurement()
+        if self.offset_data is None or self.offset_anc is None:
+            meas_data, meas_anc = self.make_projective_measurement(data, anc)
+        else:
+            meas_data, meas_anc = self.make_measurement()
 
         self.leading_ec = self.make_ec(data=data, anc=anc, meas_data=meas_data, meas_anc=meas_anc, gamma=self.gamma,
                                        gamma_phi=self.gamma_phi, loss_in=None, dephasing_in=None, recovery=recovery)
@@ -76,10 +81,12 @@ class ExtendedGadget:
                                         gamma_phi=self.gamma_phi, loss_in=self.base_noise.loss_wait,
                                         dephasing_in=self.base_noise.dephasing_wait, recovery=recovery)
 
+        st = time.time()
         if decoder == SDP:
             self.decoder = SDPDecoder(code=data, loss=self.base_noise.loss, phase=self.base_noise.phase)
         elif decoder == TRANSPOSE:
             self.decoder = TransposeChannelDecoder(code=data, loss=self.base_noise.loss)
+        print(time.time()-st)
 
         self.infidelity = 1
         self.infidelity_leading_ec = 1
@@ -111,6 +118,21 @@ class ExtendedGadget:
             meas_anc = LogicalMeasurement(2 * self.M, DIM, -np.pi / (2 * self.M), self.offset_anc)
         elif self.scheme == HYBRID:
             meas_data = LogicalMeasurement(2 * self.N, DIM, -np.pi / (2 * self.N), self.offset_data)
+            meas_anc = WedgeMeasurement(self.M * self.N, DIM, -np.pi / (self.M * self.N), self.offset_anc)
+        else:
+            raise ExtendedGadgetException("Unknown scheme", self.scheme)
+
+        return meas_data, meas_anc
+
+    def make_projective_measurement(self, data, anc):
+        """
+        Constructs measurements for data and ancilla mode.
+        """
+        if self.scheme == KNILL:
+            meas_data = ProjectiveMeasurement(data)
+            meas_anc = ProjectiveMeasurement(anc)
+        elif self.scheme == HYBRID:
+            meas_data = ProjectiveMeasurement(data)
             meas_anc = WedgeMeasurement(self.M * self.N, DIM, -np.pi / (self.M * self.N), self.offset_anc)
         else:
             raise ExtendedGadgetException("Unknown scheme", self.scheme)
@@ -167,6 +189,29 @@ class ExtendedGadget:
         anc = CatCode(N=self.M, r=0, alpha=self.alpha_anc, fockdim=DIM)
         self.leading_ec.update_alpha(data, anc)
         self.trailing_ec.update_alpha(data, anc)
+        self.decoder.update_code(data)
+
+    def update_alpha_proj_meas(self, alphas):
+        """
+        Updates amplitudes of data and ancilla mode.
+        Args:
+            alphas: list
+                A list contains amplitudes of data and ancilla mode, in the form [alpha_data, alpha_anc].
+        """
+        self.alpha_data, self.alpha_anc = alphas
+        self.code_params = [self.N, self.alpha_data, self.M, self.alpha_anc]
+        data = CatCode(N=self.N, r=0, alpha=self.alpha_data, fockdim=DIM)
+        anc = CatCode(N=self.M, r=0, alpha=self.alpha_anc, fockdim=DIM)
+        if self.scheme == KNILL:
+            meas_data = ProjectiveMeasurement(data)
+            meas_anc = ProjectiveMeasurement(anc)
+        elif self.scheme == HYBRID:
+            meas_data = ProjectiveMeasurement(data)
+            meas_anc = WedgeMeasurement(self.M * self.N, DIM, -np.pi / (self.M * self.N), self.offset_anc)
+        else:
+            raise ExtendedGadgetException("Unknown scheme", self.scheme)
+        self.leading_ec.update_alpha_proj_meas(data, anc, meas_data, meas_anc)
+        self.trailing_ec.update_alpha_proj_meas(data, anc, meas_data, meas_anc)
         self.decoder.update_code(data)
 
     def update_wait_noise(self, eta):

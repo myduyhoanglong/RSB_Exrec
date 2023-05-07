@@ -107,7 +107,8 @@ def search_gamma_phi_threshold_fixed_loss(scheme, N, gamma, gamma_phi_start=1e-4
 def optimize_fixed_noise(scheme, N, gamma, gamma_phi, model=False):
     """Find the optimal ratio, fixing loss and dephasing strength. Use multiple initial parameters for optimizer."""
     if scheme == KNILL:
-        init_pairs = [(3, 8, -0.1, -0.1, 7), (3, 8, -0.3, -0.3, 7), (5, 8, -0.1, -0.1, 15), (5, 8, -0.3, -0.3, 15)]
+        # init_pairs = [(3, 8, -0.1, -0.1, 7), (3, 8, -0.3, -0.3, 7), (5, 8, -0.1, -0.1, 15), (5, 8, -0.3, -0.3, 15)]
+        init_pairs = [(3, 8, None, None, 7), (5, 8, None, None, 15)]
     elif scheme == HYBRID:
         init_pairs = [(2, 5), (4, 10), (6, 15)]
     best_ratio = None
@@ -161,6 +162,7 @@ def optimize_fixed_noise_with_init_params(scheme, N, gamma, gamma_phi, init_pair
                            noise_params=noise_params, recovery=recovery, decoder=decoder)
     print(">>DONE INITIALIZE EXREC...<<", time.time() - st)
 
+    proj_meas = False
     if scheme == KNILL:
         if len(init_pair) == 2:
             offset = -(np.pi / (2 * N) - np.pi / (2 * N * M))
@@ -173,7 +175,11 @@ def optimize_fixed_noise_with_init_params(scheme, N, gamma, gamma_phi, init_pair
             init_params = [alpha_data, alpha_anc, offset_data, offset_anc, eta]
         elif len(init_pair) == 5:
             (alpha_data, alpha_anc, offset_data, offset_anc, eta) = init_pair
-            init_params = [alpha_data, alpha_anc, offset_data, offset_anc, eta]
+            if offset_data is None or offset_anc is None:
+                proj_meas = True
+                init_params = [alpha_data, alpha_anc, eta]
+            else:
+                init_params = [alpha_data, alpha_anc, offset_data, offset_anc, eta]
     elif scheme == HYBRID:
         if len(init_pair) == 2:
             offset_data = -(np.pi / (2 * N) - np.pi / (2 * N * N))
@@ -191,6 +197,9 @@ def optimize_fixed_noise_with_init_params(scheme, N, gamma, gamma_phi, init_pair
     if scheme == KNILL:
         data_file = 'data_knill.txt'
         log_file = 'log_knill.txt'
+        if proj_meas:
+            data_file = 'data_knill_proj_meas.txt'
+            log_file = 'log_knill_proj_meas.txt'
     elif scheme == HYBRID:
         data_file = 'data_hybrid.txt'
         log_file = 'log_hybrid.txt'
@@ -201,7 +210,7 @@ def optimize_fixed_noise_with_init_params(scheme, N, gamma, gamma_phi, init_pair
     op.logger.update_path_log(log_file)
 
     try:
-        params, ratio = op.optimize_exrec(scheme, init_params)
+        params, ratio = op.optimize_exrec(scheme, init_params, proj_meas=proj_meas)
         op.logger.write_data_log(op.exrec, op.benchmark, init_params, params)
     except:
         params, ratio = op.logger.write_last_log_line_to_data(op.exrec, init_params)
