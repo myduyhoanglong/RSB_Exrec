@@ -29,4 +29,4 @@ LOSS_PHASE = 10  # e^{i(\2pi/N^2)n}a(.)a^{\dagger}e^{-i(\2pi/N^2)n}
 DEPHASE_LOSS = 11  # an(.)a^{\dagger} + a(.)na^{\dagger}
 DEPHASE = 12  # n(.)n
 
-MAX_ETA = 1000
+MAX_ETA = 10000
