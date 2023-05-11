@@ -16,12 +16,13 @@ class BaseNoise:
     Waiting dephasing: gamma_phi_wait
     """
 
-    def __init__(self, scheme, gamma, gamma_wait, gamma_phi_wait, mod=1):
+    def __init__(self, scheme, gamma, gamma_wait, gamma_phi_wait, mod=1, rec=False):
         self.scheme = scheme
         self.gamma = gamma
         self.gamma_wait = gamma_wait
         self.gamma_phi_wait = gamma_phi_wait
         self.mod = mod
+        self.rec = rec
 
         # single gate loss
         self.nkraus = get_nkraus(self.gamma)
@@ -35,9 +36,14 @@ class BaseNoise:
         self.nkraus_wait, self.loss_wait, self.dephasing_wait = self.make_wait_noise()
 
     def make_wait_noise(self):
-        # Note that loss in one last location of leading EC is combined with waiting loss.
-        nkraus_wait = get_nkraus(self.gamma_wait + self.gamma)
-        loss_wait = channels.LossChannel(self.gamma_wait + self.gamma, DIM, nkraus_wait)
+        # Note that loss in one last location of leading EC is combined with waiting loss for extended gadget.
+        # For rectangle, there is no leading EC.
+        if self.rec:
+            nkraus_wait = get_nkraus(self.gamma_wait)
+            loss_wait = channels.LossChannel(self.gamma_wait, DIM, nkraus_wait)
+        else:
+            nkraus_wait = get_nkraus(self.gamma_wait + self.gamma)
+            loss_wait = channels.LossChannel(self.gamma_wait + self.gamma, DIM, nkraus_wait)
         if self.gamma_phi_wait > 0:
             dephasing_wait = channels.DephasingChannel(self.gamma_phi_wait, DIM)
         else:
