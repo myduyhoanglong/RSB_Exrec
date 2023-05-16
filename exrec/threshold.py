@@ -112,29 +112,29 @@ class Threshold:
             if self.group:
                 if self.fixed_wait:
                     # (alpha, offset)
-                    init_pairs = [(2, default_offset), (2, default_offset / 3), (4, default_offset),
-                                  (4, default_offset / 3), (6, default_offset), (6, default_offset / 3)]
+                    init_pairs = [[2, default_offset], [2, default_offset / 3], [4, default_offset],
+                                  [4, default_offset / 3], [6, default_offset], [6, default_offset / 3]]
                 else:
                     # (alpha, offset, eta)
-                    init_pairs = [(2, default_offset, 5), (2, default_offset / 3, 5), (4, default_offset, 10),
-                                  (4, default_offset / 3, 10), (6, default_offset, 15), (6, default_offset / 3, 15)]
+                    init_pairs = [[2, default_offset, 5], [2, default_offset / 3, 5], [4, default_offset, 10],
+                                  [4, default_offset / 3, 10], [6, default_offset, 15], [6, default_offset / 3, 15]]
             else:
                 if self.fixed_wait:
                     # (alpha_data, alpha_anc, offset_data, offset_anc)
-                    init_pairs = [(2, 8, default_offset, default_offset),
-                                  (2, 8, default_offset / 3, default_offset / 3),
-                                  (4, 8, default_offset, default_offset / 3),
-                                  (4, 8, default_offset / 3, default_offset / 3),
-                                  (6, 8, default_offset, default_offset),
-                                  (6, 8, default_offset / 3, default_offset / 3)]
+                    init_pairs = [[2, 8, default_offset, default_offset],
+                                  [2, 8, default_offset / 3, default_offset / 3],
+                                  [4, 8, default_offset, default_offset / 3],
+                                  [4, 8, default_offset / 3, default_offset / 3],
+                                  [6, 8, default_offset, default_offset],
+                                  [6, 8, default_offset / 3, default_offset / 3]]
                 else:
                     # (alpha_data, alpha_anc, offset_data, offset_anc, eta)
-                    init_pairs = [(2, 8, default_offset, default_offset, 5),
-                                  (2, 8, default_offset / 3, default_offset / 3, 5),
-                                  (4, 8, default_offset, default_offset / 3, 10),
-                                  (4, 8, default_offset / 3, default_offset / 3, 10),
-                                  (6, 8, default_offset, default_offset, 15),
-                                  (6, 8, default_offset / 3, default_offset / 3, 15)]
+                    init_pairs = [[2, 8, default_offset, default_offset, 5],
+                                  [2, 8, default_offset / 3, default_offset / 3, 5],
+                                  [4, 8, default_offset, default_offset / 3, 10],
+                                  [4, 8, default_offset / 3, default_offset / 3, 10],
+                                  [6, 8, default_offset, default_offset, 15],
+                                  [6, 8, default_offset / 3, default_offset / 3, 15]]
         elif self.scheme == HYBRID:
             N = self.N
             M = 1
@@ -142,25 +142,25 @@ class Threshold:
             if self.opt_anc:
                 if self.fixed_wait:
                     # (alpha_data, offset_data, offset_anc)
-                    init_pairs = [(2, default_offset, 0), (2, default_offset / 3, 0),
-                                  (4, default_offset, 0), (4, default_offset / 3, 0),
-                                  (6, default_offset, 0), (6, default_offset / 3, 0)]
+                    init_pairs = [[2, default_offset, 0], [2, default_offset / 3, 0],
+                                  [4, default_offset, 0], [4, default_offset / 3, 0],
+                                  [6, default_offset, 0], [6, default_offset / 3, 0]]
                 else:
                     # (alpha_data, offset_data, offset_anc, eta)
-                    init_pairs = [(2, default_offset, 0, 5), (2, default_offset / 3, 0, 5),
-                                  (4, default_offset, 0, 10), (4, default_offset / 3, 0, 10),
-                                  (6, default_offset, 0, 15), (6, default_offset / 3, 0, 15)]
+                    init_pairs = [[2, default_offset, 0, 5], [2, default_offset / 3, 0, 5],
+                                  [4, default_offset, 0, 10], [4, default_offset / 3, 0, 10],
+                                  [6, default_offset, 0, 15], [6, default_offset / 3, 0, 15]]
             else:
                 if self.fixed_wait:
                     # (alpha_data, offset_data)
-                    init_pairs = [(2, default_offset), (2, default_offset / 3),
-                                  (4, default_offset), (4, default_offset / 3),
-                                  (6, default_offset), (6, default_offset / 3)]
+                    init_pairs = [[2, default_offset], [2, default_offset / 3],
+                                  [4, default_offset], [4, default_offset / 3],
+                                  [6, default_offset], [6, default_offset / 3]]
                 else:
                     # (alpha_data, offset_data, eta)
-                    init_pairs = [(2, default_offset, 5), (2, default_offset / 3, 5),
-                                  (4, default_offset, 10), (4, default_offset / 3, 10),
-                                  (6, default_offset, 15), (6, default_offset / 3, 15)]
+                    init_pairs = [[2, default_offset, 5], [2, default_offset / 3, 5],
+                                  [4, default_offset, 10], [4, default_offset / 3, 10],
+                                  [6, default_offset, 15], [6, default_offset / 3, 15]]
         else:
             raise Exception("Unknown scheme.")
 
