@@ -2,9 +2,13 @@ from threshold import *
 
 
 def main():
-    search_threshold_fixed_dephasing(scheme=KNILL, N=4, gamma_phi=0, gamma_start=1e-4, model=False)
-    search_gamma_phi_threshold_fixed_loss(scheme=KNILL, N=4, gamma=0, gamma_phi_start=1e-4, model=False)
-    find_boundary(scheme=KNILL, N=4, model=True)
+    for N in [3]:
+        threshold = Threshold(scheme=KNILL, N=N, gadget_type='model', group=False, opt_anc=False, fixed_wait=True)
+        threshold.search_threshold(scan='gamma', fixed_param=0, x_start=1e-4)
+        gamma_phi_power = np.linspace(-5, -2.6, 13)
+        for power in gamma_phi_power:
+            gamma_phi = 10 ** power
+            threshold.search_threshold(scan='gamma', fixed_param=gamma_phi, x_start=1e-4)
 
 
 if __name__ == "__main__":

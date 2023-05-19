@@ -121,12 +121,19 @@ class Threshold:
             else:
                 if self.fixed_wait:
                     # (alpha_data, alpha_anc, offset_data, offset_anc)
-                    init_pairs = [[2, 8, default_offset, default_offset],
-                                  [2, 8, default_offset / 3, default_offset / 3],
-                                  [4, 8, default_offset, default_offset / 3],
-                                  [4, 8, default_offset / 3, default_offset / 3],
-                                  [6, 8, default_offset, default_offset],
-                                  [6, 8, default_offset / 3, default_offset / 3]]
+                    # init_pairs = [[2, 8, default_offset, default_offset],
+                    #               [2, 8, default_offset / 3, default_offset / 3],
+                    #               [4, 8, default_offset, default_offset / 3],
+                    #               [4, 8, default_offset / 3, default_offset / 3],
+                    #               [6, 8, default_offset, default_offset],
+                    #               [6, 8, default_offset / 3, default_offset / 3]]
+                    init_pairs = []
+                    for i in range(10):
+                        alpha_data = np.random.uniform(low=1, high=8)
+                        alpha_anc = np.random.uniform(low=1, high=8)
+                        offset_data = np.random.uniform(low=0, high=default_offset)
+                        offset_anc = np.random.uniform(low=0, high=default_offset)
+                        init_pairs.append([alpha_data, alpha_anc, offset_data, offset_anc])
                 else:
                     # (alpha_data, alpha_anc, offset_data, offset_anc, eta)
                     init_pairs = [[2, 8, default_offset, default_offset, 5],

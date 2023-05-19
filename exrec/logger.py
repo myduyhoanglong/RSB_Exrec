@@ -34,7 +34,7 @@ class Logger:
         if exrec.decoder == SDP:
             content += "ideal_decoder:SDP, "
         elif exrec.decoder == TRANSPOSE:
-            content += "ideal_decoder:FAST, "
+            content += "ideal_decoder:TRANSPOSE, "
         content += "code_params:" + str(exrec.code_params) + ", "
         content += "meas_params:" + str(exrec.meas_params) + ", "
         content += "noise_params:" + str(exrec.noise_params) + ", "
@@ -62,7 +62,7 @@ class Logger:
         if exrec.decoder == SDP:
             content += "ideal_decoder:SDP, "
         elif exrec.decoder == TRANSPOSE:
-            content += "ideal_decoder:FAST, "
+            content += "ideal_decoder:TRANSPOSE, "
         content += "code_params:" + str(exrec.code_params) + ", "
         content += "meas_params:" + str(exrec.meas_params) + ", "
         content += "noise_params:" + str(exrec.noise_params) + ", "
@@ -107,7 +107,7 @@ class Logger:
         if exrec.decoder == SDP:
             content += "ideal_decoder:SDP, "
         elif exrec.decoder == TRANSPOSE:
-            content += "ideal_decoder:FAST, "
+            content += "ideal_decoder:TRANSPOSE, "
         content += "code_params:" + str(exrec.code_params) + ", "
         content += "meas_params:" + str(exrec.meas_params) + ", "
         content += "noise_params:" + str(exrec.noise_params) + ", "
@@ -130,3 +130,23 @@ class Logger:
         ratio = float(data['ratio'])
         params = data['params']
         return params, ratio
+
+    def write_knill_data_point(self, ptn):
+        content = ""
+        content += "scheme:KNILL, "
+        content += "decoding_scheme:MAXIMUM_LIKELIHOOD, "
+        content += "ideal_decoder:TRANSPOSE, "
+        content += "code_params:" + str(ptn['code_params']) + ", "
+        content += "meas_params:" + str(ptn['meas_params']) + ", "
+        content += "noise_params:" + str(ptn['noise_params']) + ", "
+        content += "init_params:" + str(ptn['init_params']) + ", "
+        content += "optimal_params:" + str(ptn['optimal_params']) + ", "
+        content += "encoded_infidelity:" + str(ptn['encoded_infidelity']) + ", "
+        content += "benchmark_infidelity:" + str(ptn['benchmark_infidelity']) + ", "
+        content += "diff:" + str(ptn['encoded_infidelity'] - ptn['benchmark_infidelity']) + ", "
+        content += "ratio:" + str(ptn['encoded_infidelity'] / ptn['benchmark_infidelity']) + "\n"
+        print(content)
+
+        self.write(content, log_type=DATA_LOG)
+
+        return content
