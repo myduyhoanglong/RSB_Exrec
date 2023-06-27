@@ -143,8 +143,8 @@ class Threshold:
             if self.opt_anc:
                 if self.fixed_wait:
                     # (alpha_data, alpha_anc, offset_data, offset_anc)
-                    init_pairs = [[5, default_offset, 8, 0], [5, default_offset / 3, 8, 0],
-                                  [8, default_offset, 8, 0], [8, default_offset / 3, 8, 0]]
+                    init_pairs = [[5, 8, default_offset, 0], [5, 8, default_offset / 3, 0],
+                                  [8, 8, default_offset, 0], [8, 8, default_offset / 3, 0]]
                 else:
                     # (alpha_data, offset_data, offset_anc, eta)
                     init_pairs = [[2, default_offset, 0, 5], [2, default_offset / 3, 0, 5],
