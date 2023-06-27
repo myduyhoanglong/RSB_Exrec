@@ -38,7 +38,7 @@ class Threshold:
         """
         cross = False
         cnt = 0
-        maxcnt = 2
+        maxcnt = 1
         cutoff = 1e-7
         ratio = None
         x = x_start
@@ -142,10 +142,9 @@ class Threshold:
             default_offset = -(np.pi / (2 * N) - np.pi / (2 * N * N))
             if self.opt_anc:
                 if self.fixed_wait:
-                    # (alpha_data, offset_data, offset_anc)
-                    init_pairs = [[2, default_offset, 0], [2, default_offset / 3, 0],
-                                  [4, default_offset, 0], [4, default_offset / 3, 0],
-                                  [6, default_offset, 0], [6, default_offset / 3, 0]]
+                    # (alpha_data, alpha_anc, offset_data, offset_anc)
+                    init_pairs = [[5, default_offset, 8, 0], [5, default_offset / 3, 8, 0],
+                                  [8, default_offset, 8, 0], [8, default_offset / 3, 8, 0]]
                 else:
                     # (alpha_data, offset_data, offset_anc, eta)
                     init_pairs = [[2, default_offset, 0, 5], [2, default_offset / 3, 0, 5],

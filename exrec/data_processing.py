@@ -3,6 +3,16 @@ import json
 import re
 
 
+def fix_bracket_data(lines):
+    with open('new_file', 'a') as writer:
+        for line in lines:
+            line = re.sub(r'\(', '[', line)
+            line = re.sub(r'\)', ']', line)
+            line = line + '\n'
+            writer.write(line)
+    exit()
+
+
 def process_data(lines):
     data = []
     for k, line in enumerate(lines):

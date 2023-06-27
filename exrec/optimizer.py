@@ -215,12 +215,12 @@ class Optimizer:
 
         def f(params):
             st = time.time()
-            alpha_data, offset_data, offset_anc = params
+            alpha_data, alpha_anc, offset_data, offset_anc = params
 
-            if alpha_data < 0 or alpha_data > ALPHA_MAX:
+            if alpha_data < 0 or alpha_data > ALPHA_MAX or alpha_anc < 0 or alpha_anc > ALPHA_MAX:
                 return 10000
 
-            self.gadget.update_alpha([alpha_data, ALPHA_MAX])
+            self.gadget.update_alpha([alpha_data, alpha_anc])
             self.gadget.update_measurement([offset_data, offset_anc])
 
             infid_exrec = self.gadget.get_infidelity()
