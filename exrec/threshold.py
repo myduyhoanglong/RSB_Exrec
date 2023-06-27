@@ -14,7 +14,10 @@ class Threshold:
     def __init__(self, scheme, N, gadget_type='exrec', group=False, opt_anc=False, fixed_wait=False):
         """
         Args:
-            gadget_type: 'exrec', 'rec', 'model'
+            gadget_type: 'exrec', 'rec', 'model'.
+            group: KNILL only. If true, set data and ancilla mode to be the same.
+            opt_anc: HYBRID only. If true, optimize ancilla mode. Else, set alpha_anc = ALPHA_MAX, offset_anc = 0.
+            fixed_wait: If true, eta=1.
         """
         self.scheme = scheme
         self.N = N

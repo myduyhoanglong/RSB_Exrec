@@ -131,9 +131,9 @@ class Logger:
         params = data['params']
         return params, ratio
 
-    def write_knill_data_point(self, ptn):
+    def write_data_point(self, ptn, scheme='KNILL'):
         content = ""
-        content += "scheme:KNILL, "
+        content += "scheme:" + scheme + ", "
         content += "decoding_scheme:MAXIMUM_LIKELIHOOD, "
         content += "ideal_decoder:TRANSPOSE, "
         content += "code_params:" + str(ptn['code_params']) + ", "
@@ -145,7 +145,6 @@ class Logger:
         content += "benchmark_infidelity:" + str(ptn['benchmark_infidelity']) + ", "
         content += "diff:" + str(ptn['encoded_infidelity'] - ptn['benchmark_infidelity']) + ", "
         content += "ratio:" + str(ptn['encoded_infidelity'] / ptn['benchmark_infidelity']) + "\n"
-        print(content)
 
         self.write(content, log_type=DATA_LOG)
 
