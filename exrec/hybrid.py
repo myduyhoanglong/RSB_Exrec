@@ -336,7 +336,7 @@ class HybridEC:
 
         return dmat
 
-    def update_alpha(self, data=None, anc=None):
+    def update_code(self, data=None, anc=None):
         if data is not None:
             self.data = data
         if anc is not None:

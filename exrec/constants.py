@@ -10,6 +10,7 @@ SDP = 1
 FRONT = 2
 
 ALPHA_MAX = 9
+SQUEEZE_MAX = 1.5
 DIM = int(ALPHA_MAX ** 2 + max(36, ALPHA_MAX * 6))
 
 DATA_LOG = 1

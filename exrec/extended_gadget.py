@@ -30,8 +30,9 @@ class ExtendedGadget:
             scheme: int
                 KNILL or HYBRID
             code_params: list
-                A list contains (data mode's rotation degree, data mode's amplitude, ancilla mode's rotation degree,
-                ancilla mode's amplitude), in the form [N, alpha_data, M, alpha_anc].
+                A list contains (data mode's rotation degree, data mode's amplitude, data mode's squeeze magnitude,
+                ancilla mode's rotation degree, ancilla mode's amplitude, ancilla mode's squeeze magnitude),
+                in the form [N, alpha_data, sq_data, M, alpha_anc, sq_anc].
             meas_params: list
                 A list contains offsets of measurement of data mode and ancilla mode,
                 in the form [offset_data, offset_anc].
@@ -55,7 +56,7 @@ class ExtendedGadget:
         self.recovery = recovery
         self.decoder = decoder
 
-        self.N, self.alpha_data, self.M, self.alpha_anc = code_params
+        self.N, self.alpha_data, self.sq_data, self.M, self.alpha_anc, self.sq_anc = code_params
         self.offset_data, self.offset_anc = meas_params
         self.gamma, self.gamma_phi, self.eta = noise_params
 
@@ -64,8 +65,8 @@ class ExtendedGadget:
 
         self.base_noise = BaseNoise(scheme, self.gamma, self.gamma_wait, self.gamma_phi_wait, mod=2 * self.N * self.M)
 
-        data = CatCode(N=self.N, r=0, alpha=self.alpha_data, fockdim=DIM)
-        anc = CatCode(N=self.M, r=0, alpha=self.alpha_anc, fockdim=DIM)
+        data = CatCode(N=self.N, r=self.sq_data, alpha=self.alpha_data, fockdim=DIM)
+        anc = CatCode(N=self.M, r=self.sq_anc, alpha=self.alpha_anc, fockdim=DIM)
 
         meas_data, meas_anc = self.make_measurement()
 
@@ -154,19 +155,22 @@ class ExtendedGadget:
         self.infidelity_trailing_ec = infidelity
         return infidelity
 
-    def update_alpha(self, alphas):
+    def update_code(self, alphas, squeezes=(0, 0)):
         """
         Updates amplitudes of data and ancilla mode.
         Args:
             alphas: list
                 A list contains amplitudes of data and ancilla mode, in the form [alpha_data, alpha_anc].
+            squeezes: list
+                A list contains squeezes of data and ancilla mode, in the form [sq_data, sq_anc].
         """
         self.alpha_data, self.alpha_anc = alphas
-        self.code_params = [self.N, self.alpha_data, self.M, self.alpha_anc]
-        data = CatCode(N=self.N, r=0, alpha=self.alpha_data, fockdim=DIM)
-        anc = CatCode(N=self.M, r=0, alpha=self.alpha_anc, fockdim=DIM)
-        self.leading_ec.update_alpha(data, anc)
-        self.trailing_ec.update_alpha(data, anc)
+        self.sq_data, self.sq_anc = squeezes
+        self.code_params = [self.N, self.alpha_data, self.sq_data, self.M, self.alpha_anc, self.sq_anc]
+        data = CatCode(N=self.N, r=self.sq_data, alpha=self.alpha_data, fockdim=DIM)
+        anc = CatCode(N=self.M, r=self.sq_anc, alpha=self.alpha_anc, fockdim=DIM)
+        self.leading_ec.update_code(data, anc)
+        self.trailing_ec.update_code(data, anc)
         self.decoder.update_code(data)
 
     def update_wait_noise(self, eta):

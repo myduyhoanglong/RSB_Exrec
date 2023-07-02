@@ -47,7 +47,7 @@ class Optimizer:
         print("Done:", optimal_params, infid_exrec, infid_benchmark, diff, ratio)
         return optimal_params, ratio
 
-    def update_function(self, scheme, group=False, opt_anc=False, fixed_wait=False):
+    def update_function(self, scheme, group=False, opt_anc=False, fixed_wait=False, squeeze=False):
         """
         Update function f to optimize, based on which parameters to optimize.
         Args:
@@ -64,25 +64,49 @@ class Optimizer:
         if scheme == KNILL:
             if group:
                 if fixed_wait:
-                    self.f = self.function_knill_group_fixed_wait()
+                    if squeeze:
+                        self.f = self.function_knill_group_fixed_wait_squeeze()
+                    else:
+                        self.f = self.function_knill_group_fixed_wait()
                 else:
-                    self.f = self.function_knill_group()
+                    if squeeze:
+                        self.f = self.function_knill_group_squeeze()
+                    else:
+                        self.f = self.function_knill_group()
             else:
                 if fixed_wait:
-                    self.f = self.function_knill_separate_fixed_wait()
+                    if squeeze:
+                        self.f = self.function_knill_separate_fixed_wait_squeeze()
+                    else:
+                        self.f = self.function_knill_separate_fixed_wait()
                 else:
-                    self.f = self.function_knill_separate()
+                    if squeeze:
+                        self.f = self.function_knill_separate_squeeze()
+                    else:
+                        self.f = self.function_knill_separate()
         elif scheme == HYBRID:
             if opt_anc:
                 if fixed_wait:
-                    self.f = self.function_hybrid_anc_fixed_wait()
+                    if squeeze:
+                        self.f = self.function_hybrid_anc_fixed_wait_squeeze()
+                    else:
+                        self.f = self.function_hybrid_anc_fixed_wait()
                 else:
-                    self.f = self.function_hybrid_anc()
+                    if squeeze:
+                        self.f = self.function_hybrid_anc_squeeze()
+                    else:
+                        self.f = self.function_hybrid_anc()
             else:
                 if fixed_wait:
-                    self.f = self.function_hybrid_no_anc_fixed_wait()
+                    if squeeze:
+                        self.f = self.function_hybrid_no_anc_fixed_wait_squeeze()
+                    else:
+                        self.f = self.function_hybrid_no_anc_fixed_wait()
                 else:
-                    self.f = self.function_hybrid_no_anc()
+                    if squeeze:
+                        self.f = self.function_hybrid_no_anc_squeeze()
+                    else:
+                        self.f = self.function_hybrid_no_anc()
         else:
             raise OptimizerException("Unknown scheme.")
 
@@ -100,7 +124,7 @@ class Optimizer:
             if eta < 0 or eta > self.max_eta:
                 return 10000
 
-            self.gadget.update_alpha([alpha, alpha])
+            self.gadget.update_code(alphas=[alpha, alpha])
             self.gadget.update_measurement([offset, offset])
             self.gadget.update_wait_noise(eta)
             self.benchmark.update_noise(self.gadget.gamma_wait, self.gadget.gamma_phi_wait)
@@ -125,7 +149,7 @@ class Optimizer:
             if alpha < 0 or alpha > ALPHA_MAX:
                 return 10000
 
-            self.gadget.update_alpha([alpha, alpha])
+            self.gadget.update_code(alphas=[alpha, alpha])
             self.gadget.update_measurement([offset, offset])
 
             infid_exrec = self.gadget.get_infidelity()
@@ -147,7 +171,7 @@ class Optimizer:
             if eta < 0 or eta > self.max_eta:
                 return 10000
 
-            self.gadget.update_alpha([alpha_data, alpha_anc])
+            self.gadget.update_code(alphas=[alpha_data, alpha_anc])
             self.gadget.update_measurement([offset_data, offset_anc])
             self.gadget.update_wait_noise(eta)
             self.benchmark.update_noise(self.gadget.gamma_wait, self.gadget.gamma_phi_wait)
@@ -172,7 +196,112 @@ class Optimizer:
             if min(alpha_data, alpha_anc) < 0 or max(alpha_data, alpha_anc) > ALPHA_MAX:
                 return 10000
 
-            self.gadget.update_alpha([alpha_data, alpha_anc])
+            self.gadget.update_code(alphas=[alpha_data, alpha_anc])
+            self.gadget.update_measurement([offset_data, offset_anc])
+
+            infid_exrec = self.gadget.get_infidelity()
+            infid_benchmark = self.benchmark.get_infidelity()
+            elapse = time.time() - st
+            self.logger.write_optimize_log(list(params), infid_exrec, infid_benchmark, elapse)
+            return infid_exrec / infid_benchmark
+
+        return f
+
+    def function_knill_group_squeeze(self):
+        """
+        Assumptions: alpha_data = alpha_anc, offset_data = offset_anc, sqz_data=sqz_anc.
+        """
+
+        def f(params):
+            st = time.time()
+            alpha, sqz, offset, eta = params
+
+            if alpha < 0 or alpha > ALPHA_MAX:
+                return 10000
+            if sqz < 0 or sqz > SQUEEZE_MAX:
+                return 10000
+            if eta < 0 or eta > self.max_eta:
+                return 10000
+
+            self.gadget.update_code(alphas=[alpha, alpha], squeezes=[sqz, sqz])
+            self.gadget.update_measurement([offset, offset])
+            self.gadget.update_wait_noise(eta)
+            self.benchmark.update_noise(self.gadget.gamma_wait, self.gadget.gamma_phi_wait)
+
+            infid_exrec = self.gadget.get_infidelity()
+            infid_benchmark = self.benchmark.get_infidelity()
+            elapse = time.time() - st
+            self.logger.write_optimize_log(list(params), infid_exrec, infid_benchmark, elapse)
+            return infid_exrec / infid_benchmark
+
+        return f
+
+    def function_knill_group_fixed_wait_squeeze(self):
+        """
+        Assumptions: alpha_data = alpha_anc, offset_data = offset_anc, sqz_data=sqz_anc, eta=1.
+        """
+
+        def f(params):
+            st = time.time()
+            alpha, sqz, offset = params
+
+            if alpha < 0 or alpha > ALPHA_MAX:
+                return 10000
+            if sqz < 0 or sqz > SQUEEZE_MAX:
+                return 10000
+
+            self.gadget.update_code(alphas=[alpha, alpha], squeezes=[sqz, sqz])
+            self.gadget.update_measurement([offset, offset])
+
+            infid_exrec = self.gadget.get_infidelity()
+            infid_benchmark = self.benchmark.get_infidelity()
+            elapse = time.time() - st
+            self.logger.write_optimize_log(list(params), infid_exrec, infid_benchmark, elapse)
+            return infid_exrec / infid_benchmark
+
+        return f
+
+    def function_knill_separate_squeeze(self):
+
+        def f(params):
+            st = time.time()
+            alpha_data, alpha_anc, sqz_data, sqz_anc, offset_data, offset_anc, eta = params
+
+            if min(alpha_data, alpha_anc) < 0 or max(alpha_data, alpha_anc) > ALPHA_MAX:
+                return 10000
+            if min(sqz_data, sqz_anc) < 0 or max(sqz_data, sqz_anc) > SQUEEZE_MAX:
+                return 10000
+            if eta < 0 or eta > self.max_eta:
+                return 10000
+
+            self.gadget.update_code(alphas=[alpha_data, alpha_anc], squeezes=[sqz_data, sqz_anc])
+            self.gadget.update_measurement([offset_data, offset_anc])
+            self.gadget.update_wait_noise(eta)
+            self.benchmark.update_noise(self.gadget.gamma_wait, self.gadget.gamma_phi_wait)
+
+            infid_exrec = self.gadget.get_infidelity()
+            infid_benchmark = self.benchmark.get_infidelity()
+            elapse = time.time() - st
+            self.logger.write_optimize_log(list(params), infid_exrec, infid_benchmark, elapse)
+            return infid_exrec / infid_benchmark
+
+        return f
+
+    def function_knill_separate_fixed_wait_squeeze(self):
+        """
+        Assumption: eta=1.
+        """
+
+        def f(params):
+            st = time.time()
+            alpha_data, alpha_anc, sqz_data, sqz_anc, offset_data, offset_anc = params
+
+            if min(alpha_data, alpha_anc) < 0 or max(alpha_data, alpha_anc) > ALPHA_MAX:
+                return 10000
+            if min(sqz_data, sqz_anc) < 0 or max(sqz_data, sqz_anc) > SQUEEZE_MAX:
+                return 10000
+
+            self.gadget.update_code(alphas=[alpha_data, alpha_anc], squeezes=[sqz_data, sqz_anc])
             self.gadget.update_measurement([offset_data, offset_anc])
 
             infid_exrec = self.gadget.get_infidelity()
@@ -194,7 +323,7 @@ class Optimizer:
             if eta < 0 or eta > self.max_eta:
                 return 10000
 
-            self.gadget.update_alpha([alpha_data, ALPHA_MAX])
+            self.gadget.update_code(alphas=[alpha_data, ALPHA_MAX])
             self.gadget.update_measurement([offset_data, offset_anc])
             self.gadget.update_wait_noise(eta)
             self.benchmark.update_noise(self.gadget.gamma_wait, self.gadget.gamma_phi_wait)
@@ -217,10 +346,10 @@ class Optimizer:
             st = time.time()
             alpha_data, alpha_anc, offset_data, offset_anc = params
 
-            if alpha_data < 0 or alpha_data > ALPHA_MAX or alpha_anc < 0 or alpha_anc > ALPHA_MAX:
+            if min(alpha_data, alpha_anc) < 0 or max(alpha_data, alpha_anc) > ALPHA_MAX:
                 return 10000
 
-            self.gadget.update_alpha([alpha_data, alpha_anc])
+            self.gadget.update_code(alphas=[alpha_data, alpha_anc])
             self.gadget.update_measurement([offset_data, offset_anc])
 
             infid_exrec = self.gadget.get_infidelity()
@@ -243,7 +372,7 @@ class Optimizer:
             if eta < 0 or eta > self.max_eta:
                 return 10000
 
-            self.gadget.update_alpha([alpha_data, ALPHA_MAX])
+            self.gadget.update_code(alphas=[alpha_data, ALPHA_MAX])
             self.gadget.update_measurement([offset_data, 0])
             self.gadget.update_wait_noise(eta)
             self.benchmark.update_noise(self.gadget.gamma_wait, self.gadget.gamma_phi_wait)
@@ -269,7 +398,113 @@ class Optimizer:
             if alpha_data < 0 or alpha_data > ALPHA_MAX:
                 return 10000
 
-            self.gadget.update_alpha([alpha_data, ALPHA_MAX])
+            self.gadget.update_code(alphas=[alpha_data, ALPHA_MAX])
+            self.gadget.update_measurement([offset_data, 0])
+
+            infid_exrec = self.gadget.get_infidelity()
+            infid_benchmark = self.benchmark.get_infidelity()
+            elapse = time.time() - st
+            self.logger.write_optimize_log(list(params), infid_exrec, infid_benchmark, elapse)
+
+            return infid_exrec / infid_benchmark
+
+        return f
+
+    def function_hybrid_anc_squeeze(self):
+
+        def f(params):
+            st = time.time()
+            alpha_data, alpha_anc, sqz_data, sqz_anc, offset_data, offset_anc, eta = params
+
+            if min(alpha_data, alpha_anc) < 0 or max(alpha_data, alpha_anc) > ALPHA_MAX:
+                return 10000
+            if min(sqz_data, sqz_anc) < 0 or max(sqz_data, sqz_anc) > SQUEEZE_MAX:
+                return 10000
+            if eta < 0 or eta > self.max_eta:
+                return 10000
+
+            self.gadget.update_code(alphas=[alpha_data, alpha_anc], squeezes=[sqz_data, sqz_anc])
+            self.gadget.update_measurement([offset_data, offset_anc])
+            self.gadget.update_wait_noise(eta)
+            self.benchmark.update_noise(self.gadget.gamma_wait, self.gadget.gamma_phi_wait)
+
+            infid_exrec = self.gadget.get_infidelity()
+            infid_benchmark = self.benchmark.get_infidelity()
+            elapse = time.time() - st
+            self.logger.write_optimize_log(list(params), infid_exrec, infid_benchmark, elapse)
+
+            return infid_exrec / infid_benchmark
+
+        return f
+
+    def function_hybrid_anc_fixed_wait_squeeze(self):
+        """
+        Assumption: eta=1.
+        """
+
+        def f(params):
+            st = time.time()
+            alpha_data, alpha_anc, sqz_data, sqz_anc, offset_data, offset_anc = params
+
+            if min(alpha_data, alpha_anc) < 0 or max(alpha_data, alpha_anc) > ALPHA_MAX:
+                return 10000
+            if min(sqz_data, sqz_anc) < 0 or max(sqz_data, sqz_anc) > SQUEEZE_MAX:
+                return 10000
+
+            self.gadget.update_code(alphas=[alpha_data, alpha_anc], squeezes=[sqz_data, sqz_anc])
+            self.gadget.update_measurement([offset_data, offset_anc])
+
+            infid_exrec = self.gadget.get_infidelity()
+            infid_benchmark = self.benchmark.get_infidelity()
+            elapse = time.time() - st
+            self.logger.write_optimize_log(list(params), infid_exrec, infid_benchmark, elapse)
+
+            return infid_exrec / infid_benchmark
+
+        return f
+
+    def function_hybrid_no_anc_squeeze(self):
+
+        def f(params):
+            st = time.time()
+            alpha_data, sqz_data, offset_data, eta = params
+
+            if alpha_data < 0 or alpha_data > ALPHA_MAX:
+                return 10000
+            if sqz_data < 0 or sqz_data > SQUEEZE_MAX:
+                return 10000
+            if eta < 0 or eta > self.max_eta:
+                return 10000
+
+            self.gadget.update_code(alphas=[alpha_data, ALPHA_MAX], squeezes=[sqz_data, 0])
+            self.gadget.update_measurement([offset_data, 0])
+            self.gadget.update_wait_noise(eta)
+            self.benchmark.update_noise(self.gadget.gamma_wait, self.gadget.gamma_phi_wait)
+
+            infid_exrec = self.gadget.get_infidelity()
+            infid_benchmark = self.benchmark.get_infidelity()
+            elapse = time.time() - st
+            self.logger.write_optimize_log(list(params), infid_exrec, infid_benchmark, elapse)
+
+            return infid_exrec / infid_benchmark
+
+        return f
+
+    def function_hybrid_no_anc_fixed_wait_squeeze(self):
+        """
+        Assumption: eta=1.
+        """
+
+        def f(params):
+            st = time.time()
+            alpha_data, sqz_data, offset_data = params
+
+            if alpha_data < 0 or alpha_data > ALPHA_MAX:
+                return 10000
+            if sqz_data < 0 or sqz_data > SQUEEZE_MAX:
+                return 10000
+
+            self.gadget.update_code(alphas=[alpha_data, ALPHA_MAX], squeezes=[sqz_data, 0])
             self.gadget.update_measurement([offset_data, 0])
 
             infid_exrec = self.gadget.get_infidelity()

@@ -11,13 +11,14 @@ from models import HybridModel, KnillModel
 
 class Threshold:
 
-    def __init__(self, scheme, N, gadget_type='exrec', group=False, opt_anc=False, fixed_wait=False):
+    def __init__(self, scheme, N, gadget_type='exrec', group=False, opt_anc=False, fixed_wait=False, squeeze=False):
         """
         Args:
             gadget_type: 'exrec', 'rec', 'model'.
             group: KNILL only. If true, set data and ancilla mode to be the same.
             opt_anc: HYBRID only. If true, optimize ancilla mode. Else, set alpha_anc = ALPHA_MAX, offset_anc = 0.
             fixed_wait: If true, eta=1.
+            squeeze: If true, use the squeezed cat code.
         """
         self.scheme = scheme
         self.N = N
@@ -25,6 +26,7 @@ class Threshold:
         self.group = group
         self.opt_anc = opt_anc
         self.fixed_wait = fixed_wait
+        self.squeeze = squeeze
 
     def search_threshold(self, scan='gamma', fixed_param=1e-4, x_start=1e-4):
         """
@@ -97,7 +99,8 @@ class Threshold:
         gadget, benchmark = self.make_gadget(gamma, gamma_phi)
         op = Optimizer(gadget, benchmark)
         op = self.update_filename(op)
-        op.update_function(scheme=self.scheme, group=self.group, opt_anc=self.opt_anc, fixed_wait=self.fixed_wait)
+        op.update_function(scheme=self.scheme, group=self.group, opt_anc=self.opt_anc, fixed_wait=self.fixed_wait,
+                           squeeze=self.squeeze)
 
         try:
             params, ratio = op.optimize(init_params)
@@ -108,59 +111,113 @@ class Threshold:
         return params, ratio
 
     def get_init_pairs(self):
+        "must be fixed to include squeeze"
         if self.scheme == KNILL:
             N = self.N
             M = N
             default_offset = -(np.pi / (2 * N) - np.pi / (2 * N * M))
+            if N == 2:
+                offset = -0.3
+            else:
+                offset = default_offset
             if self.group:
                 if self.fixed_wait:
-                    # (alpha, offset)
-                    init_pairs = [[2, default_offset], [2, default_offset / 3], [4, default_offset],
-                                  [4, default_offset / 3], [6, default_offset], [6, default_offset / 3]]
+                    if self.squeeze:
+                        # (alpha, sqz, offset)
+                        init_pairs = [[2, 0, default_offset], [2, 0, default_offset / 3], [4, 0, default_offset],
+                                      [4, 0, default_offset / 3], [6, 0, default_offset], [6, 0, default_offset / 3]]
+                    else:
+                        # (alpha, offset)
+                        init_pairs = [[2, default_offset], [2, default_offset / 3], [4, default_offset],
+                                      [4, default_offset / 3], [6, default_offset], [6, default_offset / 3]]
                 else:
-                    # (alpha, offset, eta)
-                    init_pairs = [[2, default_offset, 5], [2, default_offset / 3, 5], [4, default_offset, 10],
-                                  [4, default_offset / 3, 10], [6, default_offset, 15], [6, default_offset / 3, 15]]
+                    if self.squeeze:
+                        # (alpha, sqz, offset, eta)
+                        init_pairs = [[2, 0, default_offset, 5], [2, 0, default_offset / 3, 5],
+                                      [4, 0, default_offset, 10], [4, 0, default_offset / 3, 10],
+                                      [6, 0, default_offset, 15], [6, 0, default_offset / 3, 15]]
+                    else:
+                        # (alpha, offset, eta)
+                        init_pairs = [[2, default_offset, 5], [2, default_offset / 3, 5], [4, default_offset, 10],
+                                      [4, default_offset / 3, 10], [6, default_offset, 15], [6, default_offset / 3, 15]]
             else:
                 if self.fixed_wait:
-                    # (alpha_data, alpha_anc, offset_data, offset_anc)
-                    init_pairs = [[5, 5, default_offset, default_offset],
-                                  [5, 5, default_offset / 3, default_offset / 3],
-                                  [6, 6, default_offset, default_offset],
-                                  [8, 8, default_offset / 3, default_offset / 3]]
+                    if self.squeeze:
+                        # (alpha_data, alpha_anc, sqz_data, sqz_anc, offset_data, offset_anc)
+                        init_pairs = [[5, 5, 0, 0, default_offset, default_offset],
+                                      [5, 5, 0, 0, default_offset / 3, default_offset / 3],
+                                      [6, 6, 0, 0, default_offset, default_offset],
+                                      [8, 8, 0, 0, default_offset / 3, default_offset / 3]]
+                    else:
+                        # (alpha_data, alpha_anc, offset_data, offset_anc)
+                        init_pairs = [[5, 5, default_offset, default_offset],
+                                      [5, 5, default_offset / 3, default_offset / 3],
+                                      [6, 6, default_offset, default_offset],
+                                      [8, 8, default_offset / 3, default_offset / 3]]
                 else:
-                    # (alpha_data, alpha_anc, offset_data, offset_anc, eta)
-                    init_pairs = [[2, 8, default_offset, default_offset, 5],
-                                  [2, 8, default_offset / 3, default_offset / 3, 5],
-                                  [4, 8, default_offset, default_offset, 10],
-                                  [4, 8, default_offset / 3, default_offset / 3, 10],
-                                  [6, 8, default_offset, default_offset, 15],
-                                  [6, 8, default_offset / 3, default_offset / 3, 15]]
+                    if self.squeeze:
+                        # (alpha_data, alpha_anc, sqz_data, sqz_anc, offset_data, offset_anc, eta)
+                        init_pairs = [[4, 4, 0, 0, offset, offset, 10],
+                                      [4, 4, 0.5, 0.5, offset, offset, 10],
+                                      [4, 4, 1, 1, offset, offset, 10],
+                                      [6, 6, 0, 0, offset, offset, 5],
+                                      [6, 6, 0.5, 0.5, offset, offset, 5],
+                                      [6, 6, 1, 1, offset, offset, 5]]
+                    else:
+                        # (alpha_data, alpha_anc, offset_data, offset_anc, eta)
+                        init_pairs = [[2, 8, default_offset, default_offset, 5],
+                                      [2, 8, default_offset / 3, default_offset / 3, 5],
+                                      [4, 8, default_offset, default_offset, 10],
+                                      [4, 8, default_offset / 3, default_offset / 3, 10],
+                                      [6, 8, default_offset, default_offset, 15],
+                                      [6, 8, default_offset / 3, default_offset / 3, 15]]
         elif self.scheme == HYBRID:
             N = self.N
             M = 1
             default_offset = -(np.pi / (2 * N) - np.pi / (2 * N * N))
             if self.opt_anc:
                 if self.fixed_wait:
-                    # (alpha_data, alpha_anc, offset_data, offset_anc)
-                    init_pairs = [[5, 8, default_offset, 0], [5, 8, default_offset / 3, 0],
-                                  [8, 8, default_offset, 0], [8, 8, default_offset / 3, 0]]
+                    if self.squeeze:
+                        # (alpha_data, alpha_anc, sqz_data, sqz_anc, offset_data, offset_anc)
+                        init_pairs = [[5, 8, 0, 0, default_offset, 0], [5, 8, 0, 0, default_offset / 3, 0],
+                                      [8, 8, 0, 0, default_offset, 0], [8, 8, 0, 0, default_offset / 3, 0]]
+                    else:
+                        # (alpha_data, alpha_anc, offset_data, offset_anc)
+                        init_pairs = [[5, 8, default_offset, 0], [5, 8, default_offset / 3, 0],
+                                      [8, 8, default_offset, 0], [8, 8, default_offset / 3, 0]]
                 else:
-                    # (alpha_data, offset_data, offset_anc, eta)
-                    init_pairs = [[2, default_offset, 0, 5], [2, default_offset / 3, 0, 5],
-                                  [4, default_offset, 0, 10], [4, default_offset / 3, 0, 10],
-                                  [6, default_offset, 0, 15], [6, default_offset / 3, 0, 15]]
+                    if self.squeeze:
+                        # (alpha_data, alpha_anc, sqz_data, sqz_anc, offset_data, offset_anc, eta)
+                        init_pairs = [[2, ALPHA_MAX, 0, 0, default_offset, 0, 5],
+                                      [2, ALPHA_MAX, 0, 0, default_offset / 3, 0, 5]]
+                    else:
+                        # (alpha_data, offset_data, offset_anc, eta)
+                        init_pairs = [[2, default_offset, 0, 5], [2, default_offset / 3, 0, 5],
+                                      [4, default_offset, 0, 10], [4, default_offset / 3, 0, 10],
+                                      [6, default_offset, 0, 15], [6, default_offset / 3, 0, 15]]
             else:
                 if self.fixed_wait:
-                    # (alpha_data, offset_data)
-                    init_pairs = [[2, default_offset], [2, default_offset / 3],
-                                  [4, default_offset], [4, default_offset / 3],
-                                  [6, default_offset], [6, default_offset / 3]]
+                    if self.squeeze:
+                        # (alpha_data, sqz_data, offset_data)
+                        init_pairs = [[2, 0, default_offset], [2, 0, default_offset / 3],
+                                      [4, 0, default_offset], [4, 0, default_offset / 3],
+                                      [6, 0, default_offset], [6, 0, default_offset / 3]]
+                    else:
+                        # (alpha_data, offset_data)
+                        init_pairs = [[2, default_offset], [2, default_offset / 3],
+                                      [4, default_offset], [4, default_offset / 3],
+                                      [6, default_offset], [6, default_offset / 3]]
                 else:
-                    # (alpha_data, offset_data, eta)
-                    init_pairs = [[2, default_offset, 5], [2, default_offset / 3, 5],
-                                  [4, default_offset, 10], [4, default_offset / 3, 10],
-                                  [6, default_offset, 15], [6, default_offset / 3, 15]]
+                    if self.squeeze:
+                        # (alpha_data, sqz_data, offset_data, eta)
+                        init_pairs = [[2, 0, default_offset, 5], [2, 0, default_offset / 3, 5],
+                                      [4, 0, default_offset, 10], [4, 0, default_offset / 3, 10],
+                                      [6, 0, default_offset, 15], [6, 0, default_offset / 3, 15]]
+                    else:
+                        # (alpha_data, offset_data, eta)
+                        init_pairs = [[2, default_offset, 5], [2, default_offset / 3, 5],
+                                      [4, default_offset, 10], [4, default_offset / 3, 10],
+                                      [6, default_offset, 15], [6, default_offset / 3, 15]]
         else:
             raise Exception("Unknown scheme.")
 
@@ -174,6 +231,8 @@ class Threshold:
 
         # code params
         alpha_data = 2
+        sq_data = 0
+        sq_anc = 0
         if scheme == KNILL:
             M = N
             alpha_anc = alpha_data
@@ -192,7 +251,7 @@ class Threshold:
         gamma_wait = gamma * eta
         gamma_phi_wait = gamma_phi * eta
 
-        code_params = [N, alpha_data, M, alpha_anc]
+        code_params = [N, alpha_data, sq_data, M, alpha_anc, sq_anc]
         meas_params = [offset_data, offset_anc]
         noise_params = [gamma, gamma_phi, eta]
 
