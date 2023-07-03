@@ -147,6 +147,7 @@ class TransposeChannelDecoder:
             for k in range(N):
                 krs.append(self.encoder.dag() * P * self.loss.kraus[k].dag() * norm)
             rev = channels.Channel(kraus=krs)
+            # the transpose channel is not trace-preserving because of the projection on the code space.
 
         return rev
 
@@ -225,7 +226,8 @@ class TransposeChannelDecoder:
                             output_matrix += emat[k0, a, b, i, j, m, n] * qt.sprepost(pre, post)
 
         output_map = channels.Channel(channel_matrix=output_matrix)
-        output_map.tp_check(silent=True)
+        # recovery channel needs not be trace-preserving
+        # output_map.tp_check(silent=True)
 
         return output_map
 
