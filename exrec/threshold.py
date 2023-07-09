@@ -157,12 +157,25 @@ class Threshold:
                 else:
                     if self.squeeze:
                         # (alpha_data, alpha_anc, sqz_data, sqz_anc, offset_data, offset_anc, eta)
-                        init_pairs = [[4, 4, 0, 0, offset, offset, 10],
-                                      [4, 4, 0.5, 0.5, offset, offset, 10],
-                                      [4, 4, 1, 1, offset, offset, 10],
-                                      [6, 6, 0, 0, offset, offset, 5],
-                                      [6, 6, 0.5, 0.5, offset, offset, 5],
-                                      [6, 6, 1, 1, offset, offset, 5]]
+                        if N == 2:
+                            init_pairs = [[4, 4, 0, 0, offset, offset, 10],
+                                          [4, 4, 0.5, 0.5, offset, offset, 10],
+                                          [4, 4, 1, 1, offset, offset, 10],
+                                          [6, 6, 0, 0, offset, offset, 5],
+                                          [6, 6, 0.5, 0.5, offset, offset, 5],
+                                          [6, 6, 1, 1, offset, offset, 5]]
+                        elif N == 3:
+                            offset_data = -0.1
+                            offset_anc = -0.3
+                            init_pairs = [[5, 7, 0.5, 0.5, offset_data, offset_anc, 20],
+                                          [5, 7, 1, 1, offset_data, offset_anc, 20],
+                                          [6, 6, 0.5, 0.5, offset_data, offset_anc / 2, 10],
+                                          [6, 6, 1, 1, offset_data, offset_anc / 2, 10]]
+                        elif N == 4:
+                            offset_data = -0.08
+                            offset_anc = -0.1
+                            init_pairs = [[8, 8, 0.5, 0.5, offset_data, offset_anc, 9],
+                                          [8, 8, 1, 1, offset_data, offset_anc, 9]]
                     else:
                         # (alpha_data, alpha_anc, offset_data, offset_anc, eta)
                         init_pairs = [[2, 8, default_offset, default_offset, 5],
@@ -188,8 +201,27 @@ class Threshold:
                 else:
                     if self.squeeze:
                         # (alpha_data, alpha_anc, sqz_data, sqz_anc, offset_data, offset_anc, eta)
-                        init_pairs = [[2, ALPHA_MAX, 0, 0, default_offset, 0, 5],
-                                      [2, ALPHA_MAX, 0, 0, default_offset / 3, 0, 5]]
+                        if N == 2:
+                            offset_data = -0.03
+                            offset_anc = 0
+                            init_pairs = [[3, ALPHA_MAX, 0.5, 0, offset_data, offset_anc, 40],
+                                          [3, ALPHA_MAX, 1, 0.5, offset_data, offset_anc, 40],
+                                          [4, ALPHA_MAX, 0.5, 0, offset_data, offset_anc, 20],
+                                          [4, ALPHA_MAX, 1, 0.5, offset_data, offset_anc, 20]]
+                        if N == 3:
+                            offset_data = -0.1
+                            offset_anc = 0
+                            init_pairs = [[5, ALPHA_MAX, 0.5, 0, offset_data, offset_anc, 10],
+                                          [5, ALPHA_MAX, 1, 0.5, offset_data, offset_anc, 10],
+                                          [7, ALPHA_MAX, 0.5, 0, offset_data, offset_anc, 5],
+                                          [7, ALPHA_MAX, 1, 0.5, offset_data, offset_anc, 5]]
+                        if N == 4:
+                            offset_data = -0.05
+                            offset_anc = 0
+                            init_pairs = [[6, ALPHA_MAX, 0.5, 0, offset_data, offset_anc, 10],
+                                          [6, ALPHA_MAX, 1, 0.5, offset_data, offset_anc, 10],
+                                          [8, ALPHA_MAX, 0.5, 0, offset_data, offset_anc, 5],
+                                          [8, ALPHA_MAX, 1, 0.5, offset_data, offset_anc, 5]]
                     else:
                         # (alpha_data, offset_data, offset_anc, eta)
                         init_pairs = [[2, default_offset, 0, 5], [2, default_offset / 3, 0, 5],
