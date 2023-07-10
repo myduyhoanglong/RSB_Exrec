@@ -23,11 +23,11 @@ def get_nkraus(gamma):
     elif gamma <= 1e-2:
         nkraus = 12
     elif gamma <= 2e-2:
-        nkraus = 15
+        nkraus = 16
     elif gamma <= 4e-2:
-        nkraus = 21
+        nkraus = 22
     elif gamma <= 6e-2:
-        nkraus = 27
+        nkraus = 28
     else:
         nkraus = 50
     return nkraus

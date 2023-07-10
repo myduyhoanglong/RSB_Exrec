@@ -12,7 +12,7 @@ FRONT = 2
 ALPHA_MAX = 9
 SQUEEZE_MAX = 1.5
 # DIM = int(ALPHA_MAX ** 2 + max(36, ALPHA_MAX * 6))
-DIM = 144  # DIM should not = 1 (mod N)
+DIM = 156  # DIM should not = 1 (mod N)
 
 DATA_LOG = 1
 OPTIMIZE_LOG = 2

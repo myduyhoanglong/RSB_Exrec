@@ -204,24 +204,24 @@ class Threshold:
                         if N == 2:
                             offset_data = -0.03
                             offset_anc = 0
-                            init_pairs = [[3, ALPHA_MAX, 0.5, 0, offset_data, offset_anc, 40],
-                                          [3, ALPHA_MAX, 1, 0.5, offset_data, offset_anc, 40],
-                                          [4, ALPHA_MAX, 0.5, 0, offset_data, offset_anc, 20],
-                                          [4, ALPHA_MAX, 1, 0.5, offset_data, offset_anc, 20]]
+                            init_pairs = [[3, 8, 0.5, 0, offset_data, offset_anc, 40],
+                                          [3, 8, 1, 0.3, offset_data, offset_anc, 40],
+                                          [4, 8, 0.5, 0, offset_data, offset_anc, 20],
+                                          [4, 8, 1, 0.3, offset_data, offset_anc, 20]]
                         if N == 3:
                             offset_data = -0.1
                             offset_anc = 0
-                            init_pairs = [[5, ALPHA_MAX, 0.5, 0, offset_data, offset_anc, 10],
-                                          [5, ALPHA_MAX, 1, 0.5, offset_data, offset_anc, 10],
-                                          [7, ALPHA_MAX, 0.5, 0, offset_data, offset_anc, 5],
-                                          [7, ALPHA_MAX, 1, 0.5, offset_data, offset_anc, 5]]
+                            init_pairs = [[5, 8, 0.5, 0, offset_data, offset_anc, 10],
+                                          [5, 8, 1, 0.3, offset_data, offset_anc, 10],
+                                          [7, 8, 0.5, 0, offset_data, offset_anc, 5],
+                                          [7, 8, 1, 0.3, offset_data, offset_anc, 5]]
                         if N == 4:
                             offset_data = -0.05
                             offset_anc = 0
-                            init_pairs = [[6, ALPHA_MAX, 0.5, 0, offset_data, offset_anc, 10],
-                                          [6, ALPHA_MAX, 1, 0.5, offset_data, offset_anc, 10],
-                                          [8, ALPHA_MAX, 0.5, 0, offset_data, offset_anc, 5],
-                                          [8, ALPHA_MAX, 1, 0.5, offset_data, offset_anc, 5]]
+                            init_pairs = [[6, 8, 0.5, 0, offset_data, offset_anc, 10],
+                                          [6, 8, 1, 0.3, offset_data, offset_anc, 10],
+                                          [8, 8, 0.5, 0, offset_data, offset_anc, 5],
+                                          [8, 8, 1, 0.3, offset_data, offset_anc, 5]]
                     else:
                         # (alpha_data, offset_data, offset_anc, eta)
                         init_pairs = [[2, default_offset, 0, 5], [2, default_offset / 3, 0, 5],
